@@ -79,7 +79,7 @@ static void handleRoot() {
           "<meta charset='utf-8'>"
           "<meta http-equiv='refresh' content='30'>"
           "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-          "<title>Y'ALL-ert</title>"
+          "<title>Y'all-ARM</title>"
           "<style>"
           "body{font-family:sans-serif;max-width:500px;margin:40px auto;padding:0 16px;color:#222}"
           "h1{font-size:1.5em;margin-bottom:4px}h2{font-size:1.1em;margin-top:24px}"
@@ -93,7 +93,7 @@ static void handleRoot() {
           "button:hover{background:#e8e8e8}"
           "hr{border:none;border-top:1px solid #eee;margin:20px 0}"
           "</style></head><body>"
-          "<h1>&#x1F4E1; Y'ALL-ert</h1>");
+          "<h1>&#x1F4E1; Y'all-ARM</h1>");
 
     html += "<table>";
     html += "<tr><td>WIS Score</td><td>" + String(wisData.current_score, 2) + "</td></tr>";
@@ -163,7 +163,7 @@ static void handleReset() {
 void setup() {
     Serial.begin(115200);
     delay(500);
-    Serial.println("[boot] Y'ALL-ert starting");
+    Serial.println("[boot] Y'all-ARM starting");
 
     if (!LittleFS.begin(true)) {
         Serial.println("[boot] LittleFS mount failed — audio unavailable");

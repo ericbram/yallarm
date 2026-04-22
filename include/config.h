@@ -6,7 +6,7 @@
 // WiFi credentials are NOT hardcoded. On first boot (or after a factory reset),
 // the device broadcasts a WiFi hotspot named WIFI_AP_NAME. Connect to it from
 // your phone and enter your home WiFi credentials through the captive portal.
-#define WIFI_AP_NAME        "YALLert-Setup"
+#define WIFI_AP_NAME        "YallARM-Setup"
 #define WIFI_AP_TIMEOUT_S   180             // seconds before AP times out and device restarts
 
 // =============================================================================

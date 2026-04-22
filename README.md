@@ -1,4 +1,4 @@
-# Y'ALL-ert
+# Y'all-ARM
 
 A desktop IoT device that monitors [Ryan Hall Y'all's](https://ryanhallyall.com) Weather Intensity Score (WIS) and lights up a 3D-printed LED display when he goes live. The progress bar shows the current WIS score as a percentage of today's stream-trigger threshold in real time.
 
@@ -116,7 +116,7 @@ WiFi credentials are **not** stored in code — they're configured at runtime th
 ## First Boot (WiFi Setup)
 
 1. Power on the device
-2. It will broadcast a WiFi network called **`YALLert-Setup`**
+2. It will broadcast a WiFi network called **`YallARM-Setup`**
 3. Connect from your phone — a captive portal will open automatically
 4. Enter your home WiFi SSID and password
 5. The device saves credentials to flash and reboots onto your network

@@ -1,8 +1,8 @@
-# AGENTS.md — Y'ALL-ert Weather Signal: Agent/Coding Specification
+# AGENTS.md — Y'all-ARM Weather Signal: Agent/Coding Specification
 
 ## Project Overview
 
-**Name:** Y'ALL-ert  
+**Name:** Y'all-ARM  
 **Hardware:** ESP32-S3 DevKit  
 **Purpose:** A desktop IoT device that monitors Ryan Hall Y'all's WIS (Weather Intensity Score) API. It activates a 3D-printed LED display and audio alert when he goes live, and continuously shows a progress bar of the current WIS score as a percentage of today's stream-trigger threshold.
 
