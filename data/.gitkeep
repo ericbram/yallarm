@@ -1,0 +1,3 @@
+# Place your yall_live.mp3 file in this folder.
+# Upload it to the ESP32 with: pio run --target uploadfs
+# Requirements: mono or stereo, 44.1kHz or 22.05kHz, 128kbps or lower
