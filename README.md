@@ -102,7 +102,7 @@ Requirements:
 #define WIS_API_URL          "https://ryanhallyall.com/rhy/wis.json"
 
 // Change how often it polls (ms)
-#define WIS_POLL_INTERVAL_MS (60 * 1000)
+#define WIS_POLL_INTERVAL_MS (300 * 1000)
 
 // Change LED pins, brightness, animation speed, colors...
 // Change audio pins and volume...

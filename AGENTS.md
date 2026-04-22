@@ -2,8 +2,8 @@
 
 ## Project Overview
 
-**Name:** Y'all-ARM  
-**Hardware:** ESP32-S3 DevKit  
+**Name:** Y'all-ARM
+**Hardware:** ESP32-S3 DevKit
 **Purpose:** A desktop IoT device that monitors Ryan Hall Y'all's WIS (Weather Intensity Score) API. It activates a 3D-printed LED display and audio alert when he goes live, and continuously shows a progress bar of the current WIS score as a percentage of today's stream-trigger threshold.
 
 ---
@@ -80,7 +80,7 @@ Standard ESP32 libraries used (no `lib_deps` entry needed):
 
 // WIS API (no authentication required)
 const char* WIS_API_URL         = "https://ryanhallyall.com/rhy/wis.json";
-const int   WIS_POLL_INTERVAL_MS = 60 * 1000;  // 60 seconds
+const int   WIS_POLL_INTERVAL_MS = 300 * 1000;  // 5m
 
 // Minimum threshold floor — if threshold < this, skip bar fill to avoid
 // false "maxed out" display on low-activity days
