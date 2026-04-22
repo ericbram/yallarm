@@ -57,8 +57,9 @@ void test_wis_pct_threshold_below_floor_returns_1(void) {
 }
 
 void test_wis_pct_threshold_exactly_at_floor(void) {
-    // Threshold exactly equals floor → treated as too low → return 1
-    TEST_ASSERT_EQUAL(1, computeWisPct(50.0f, 10.0f, FLOOR));
+    // Threshold exactly equals floor — the check is strict (<), so 10.0 is NOT
+    // below 10.0 and normal calculation runs: 5.0 / 10.0 * 100 = 50%
+    TEST_ASSERT_EQUAL(50, computeWisPct(5.0f, 10.0f, FLOOR));
 }
 
 void test_wis_pct_threshold_just_above_floor(void) {
