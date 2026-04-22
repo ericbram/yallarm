@@ -13,7 +13,7 @@
 // WIS API
 // =============================================================================
 #define WIS_API_URL             "https://ryanhallyall.com/rhy/wis.json"
-#define WIS_POLL_INTERVAL_MS    (60 * 1000)     // how often to poll, in milliseconds
+#define WIS_POLL_INTERVAL_MS    (300 * 1000)    // how often to poll, in milliseconds
 #define WIS_THRESHOLD_FLOOR     10.0f           // if threshold < this, bar stays at minimum
                                                 // (avoids false "maxed out" on slow weather days)
 
