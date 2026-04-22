@@ -1,5 +1,6 @@
 #include "wis.h"
 #include "config.h"
+#include "wis_calc.h"
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
@@ -48,16 +49,9 @@ WisData pollWIS() {
     result.score_30m     = doc["wis"]["weather_intensity_score_30m_from_now"] | 0.0f;
     result.threshold     = doc["wis"]["todays_stream_info"]["weather_intensity_score_threshold"] | 0.0f;
     result.mode          = doc["wis"]["todays_stream_info"]["mode"] | "off";
-    result.is_live       = (result.mode != "off");
+    result.is_live       = computeIsLive(result.mode.c_str());
+    result.wis_pct       = computeWisPct(result.current_score, result.threshold, WIS_THRESHOLD_FLOOR);
     result.valid         = true;
-
-    // Compute wis_pct: score as a percentage of today's stream threshold, clamped 1–100
-    if (result.threshold < WIS_THRESHOLD_FLOOR) {
-        result.wis_pct = 1;
-    } else {
-        float raw = (result.current_score / result.threshold) * 100.0f;
-        result.wis_pct = (int)constrain(raw, 1.0f, 100.0f);
-    }
 
     Serial.printf("[WIS] score=%.2f  threshold=%.2f  pct=%d%%  mode=%s  live=%s\n",
                   result.current_score, result.threshold, result.wis_pct,

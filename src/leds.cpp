@@ -1,5 +1,6 @@
 #include "leds.h"
 #include "config.h"
+#include "led_calc.h"
 #include <FastLED.h>
 
 static CRGB leds[NUM_LEDS];
@@ -17,16 +18,18 @@ static bool    strobeOn      = false;
 // Helpers
 // ---------------------------------------------------------------------------
 
-static CRGB colorForPct(int pct) {
-    if (pct <= COLOR_TIER_LOW) return CRGB(0,   0,   200);   // Blue
-    if (pct <= COLOR_TIER_MID) return CRGB(0,   128, 128);   // Teal
-    return                            CRGB(200, 0,   200);   // Magenta
+static CRGB crgbForTier(ColorTier tier) {
+    switch (tier) {
+        case TIER_BLUE:    return CRGB(0,   0,   200);
+        case TIER_TEAL:    return CRGB(0,   128, 128);
+        case TIER_MAGENTA: return CRGB(200, 0,   200);
+        default:           return CRGB::Black;
+    }
 }
 
 static void fillBar(int pct) {
-    int barLeds = (int)round(pct / 10.0f);
-    barLeds = constrain(barLeds, 0, LED_BAR_COUNT);
-    CRGB col = colorForPct(pct);
+    int barLeds = computeBarLeds(pct);
+    CRGB col = crgbForTier(computeColorTier(pct));
     for (int i = LED_BAR_START; i <= LED_BAR_END; i++) {
         leds[i] = ((i - LED_BAR_START) < barLeds) ? col : CRGB::Black;
     }
@@ -34,7 +37,7 @@ static void fillBar(int pct) {
 
 // Strobe the top 2 bar LEDs when pct has hit 100
 static void applyStrobe(int pct) {
-    if (pct < 100) return;
+    if (!computeStrobe(pct)) return;
     uint32_t now = millis();
     if (now - strobeLastMs >= STROBE_INTERVAL_MS) {
         strobeLastMs = now;
@@ -101,7 +104,7 @@ void ledsSetState(LedState newState) {
 }
 
 void ledsSetWisPct(int pct) {
-    currentWisPct = constrain(pct, 1, 100);
+    currentWisPct = pct < 1 ? 1 : (pct > 100 ? 100 : pct);
 }
 
 void ledsTick() {

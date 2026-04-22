@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # -----------------------------------------------------------------------
+  # Job 1: Unit tests — runs pure logic tests on the host (no hardware)
+  # Fast: no ESP32 toolchain download needed.
+  # -----------------------------------------------------------------------
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-pio-native-${{ hashFiles('platformio.ini') }}
+          restore-keys: ${{ runner.os }}-pio-native-
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Run unit tests (native)
+        run: pio test -e native -v
+
+  # -----------------------------------------------------------------------
+  # Job 2: Firmware build — compiles the full ESP32-S3 firmware.
+  # Catches any hardware-side compile errors. Runs in parallel with tests.
+  # -----------------------------------------------------------------------
+  firmware-build:
+    name: Firmware Build (ESP32-S3)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Cache PlatformIO packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.platformio
+          key: ${{ runner.os }}-pio-esp32-${{ hashFiles('platformio.ini') }}
+          restore-keys: ${{ runner.os }}-pio-esp32-
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Build firmware
+        run: pio run -e esp32-s3-devkitc-1
