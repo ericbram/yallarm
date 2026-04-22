@@ -75,25 +75,25 @@ static void handleRoot() {
     String live_text  = wisData.is_live ? "&#x1F7E2; LIVE" : "&#x26AB; Offline";
 
     String html =
-        F("<!DOCTYPE html><html><head>"
-          "<meta charset='utf-8'>"
-          "<meta http-equiv='refresh' content='30'>"
-          "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-          "<title>Y'all-ARM</title>"
-          "<style>"
-          "body{font-family:sans-serif;max-width:500px;margin:40px auto;padding:0 16px;color:#222}"
-          "h1{font-size:1.5em;margin-bottom:4px}h2{font-size:1.1em;margin-top:24px}"
-          "table{border-collapse:collapse;width:100%;margin-bottom:16px}"
-          "td{padding:7px 10px;border-bottom:1px solid #eee}"
-          "td:first-child{color:#666;width:45%}"
-          ".live{color:#2a2;font-weight:bold}.offline{color:#999}"
-          "input[type=range]{width:100%;margin:8px 0}"
-          "button{padding:8px 18px;margin-top:6px;cursor:pointer;border:1px solid #ccc;"
-                  "border-radius:4px;background:#f5f5f5}"
-          "button:hover{background:#e8e8e8}"
-          "hr{border:none;border-top:1px solid #eee;margin:20px 0}"
-          "</style></head><body>"
-          "<h1>&#x1F4E1; Y'all-ARM</h1>");
+        "<!DOCTYPE html><html><head>"
+        "<meta charset='utf-8'>"
+        "<meta http-equiv='refresh' content='30'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>Y'all-ARM</title>"
+        "<style>"
+        "body{font-family:sans-serif;max-width:500px;margin:40px auto;padding:0 16px;color:#222}"
+        "h1{font-size:1.5em;margin-bottom:4px}h2{font-size:1.1em;margin-top:24px}"
+        "table{border-collapse:collapse;width:100%;margin-bottom:16px}"
+        "td{padding:7px 10px;border-bottom:1px solid #eee}"
+        "td:first-child{color:#666;width:45%}"
+        ".live{color:#2a2;font-weight:bold}.offline{color:#999}"
+        "input[type=range]{width:100%;margin:8px 0}"
+        "button{padding:8px 18px;margin-top:6px;cursor:pointer;border:1px solid #ccc;"
+        "border-radius:4px;background:#f5f5f5}"
+        "button:hover{background:#e8e8e8}"
+        "hr{border:none;border-top:1px solid #eee;margin:20px 0}"
+        "</style></head><body>"
+        "<h1>&#x1F4E1; Y'all-ARM</h1>";
 
     html += "<table>";
     html += "<tr><td>WIS Score</td><td>" + String(wisData.current_score, 2) + "</td></tr>";
@@ -105,21 +105,20 @@ static void handleRoot() {
     html += "<tr><td>LED State</td><td>" + String(stateLabel()) + "</td></tr>";
     html += "</table><hr>";
 
-    html +=
-        F("<h2>Manual Override</h2>"
-          "<p style='color:#666;font-size:.9em'>Set a fixed WIS % for testing LEDs. "
-          "Click Reset to return to live data.</p>"
-          "<form method='POST' action='/override'>"
-          "WIS % (1&ndash;100):&nbsp;"
-          "<output id='val'>") + String(overridePct) + F("</output>%"
-          "<input type='range' name='level' min='1' max='100' value='") + String(overridePct) + F("'"
-          " oninput=\"document.getElementById('val').value=this.value\">"
-          "<br><button type='submit'>Apply Override</button>"
-          "</form>"
-          "<form method='POST' action='/reset'>"
-          "<button type='submit' style='margin-top:8px'>Reset to Live Data</button>"
-          "</form>"
-          "</body></html>");
+    html += "<h2>Manual Override</h2>"
+            "<p style='color:#666;font-size:.9em'>Set a fixed WIS % for testing LEDs. "
+            "Click Reset to return to live data.</p>"
+            "<form method='POST' action='/override'>"
+            "WIS % (1&ndash;100):&nbsp;"
+            "<output id='val'>" + String(overridePct) + "</output>%"
+            "<input type='range' name='level' min='1' max='100' value='" + String(overridePct) + "'"
+            " oninput=\"document.getElementById('val').value=this.value\">"
+            "<br><button type='submit'>Apply Override</button>"
+            "</form>"
+            "<form method='POST' action='/reset'>"
+            "<button type='submit' style='margin-top:8px'>Reset to Live Data</button>"
+            "</form>"
+            "</body></html>";
 
     server.send(200, "text/html", html);
 }
