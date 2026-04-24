@@ -13,18 +13,16 @@
 ```
 yallarm/
 ├── AGENTS.md              # This file
-├── YALLCALL.md            # Future feature spec: GPS location
+├── YALLCALL.md            # Future feature spec: YallCall geofence alerts
 ├── src/
 │   ├── main.cpp           # Primary application entry point
-│   └── location.cpp       # Location sensing implementation (IP geolocation)
 ├── data/
 │   └── yall_live.mp3      # Audio alert file (stored in LittleFS)
 ├── include/
 │   ├── config.h           # Pin definitions, constants, endpoint URL
 │   ├── leds.h             # LED state machine declarations
 │   ├── audio.h            # Audio playback declarations
-│   ├── wis.h              # WIS API polling declarations
-│   └── location.h         # Location sensing declarations
+│   └── wis.h              # WIS API polling declarations
 ├── platformio.ini         # PlatformIO build configuration
 └── README.md
 ```
@@ -73,7 +71,6 @@ Standard ESP32 libraries used (no `lib_deps` entry needed):
 - `HTTPClient.h`
 - `LittleFS.h`
 - `WebServer.h`
-- `Preferences.h` (NVS-backed cache for IP geolocation)
 
 ---
 
@@ -115,12 +112,6 @@ const float WIS_THRESHOLD_FLOOR = 10.0f;
 #define COLOR_MAGENTA   CRGB(200, 0, 200)
 #define COLOR_OFF       CRGB(0, 0, 0)
 
-// Location (optional — IP geolocation only; see YALLCALL.md for GPS spec)
-#define LOCATION_METHOD_IP_GEOLOCATION  1       // 0 = disable
-
-// IP geolocation
-#define IP_GEOLOCATION_URL              "http://ip-api.com/json/?fields=lat,lon,city,regionName,country,timezone"
-#define IP_GEOLOCATION_REFRESH_MS       (24UL * 60UL * 60UL * 1000UL)   // 24h
 ```
 
 ---
@@ -266,89 +257,7 @@ Same logic applies in `STATE_OVERRIDE` when `override_pct == 100`.
 
 ---
 
-## 8. Location (Optional — IP Geolocation)
-
-IP geolocation is optional and requires no extra hardware. GPS support is deferred; see `YALLCALL.md` for that spec.
-
-### Files
-
-- `include/location.h` — public API, enum and struct declarations
-- `src/location.cpp` — implementation (IP fetch, NVS cache)
-
-### Operating Modes
-
-Driven by `LOCATION_METHOD_IP_GEOLOCATION` in `config.h`:
-
-| Value | Behavior                                                                    |
-|-------|-----------------------------------------------------------------------------|
-| 0     | Location disabled. `location` key omitted from `/status`.                   |
-| 1     | IP geolocation. City-level accuracy, refreshed every `IP_GEOLOCATION_REFRESH_MS`. |
-
-### Types
-
-```cpp
-enum LocationSource { LOC_SOURCE_NONE, LOC_SOURCE_IP };
-
-struct LocationData {
-    float          lat;
-    float          lon;
-    String         city;
-    String         region;
-    String         country;
-    String         timezone;
-    LocationSource source;
-    uint32_t       last_update_ms;
-    bool           valid;
-};
-```
-
-A module-private `LocationData currentLocation` holds the latest resolved fix; `getLocation()` returns a const reference.
-
-### Public API (`include/location.h`)
-
-```cpp
-void                initLocation();      // call after WiFi connects in setup()
-void                locationTick();      // call every loop() iteration
-const LocationData& getLocation();       // read-only accessor
-bool                locationEnabled();   // true if at least one method is enabled
-```
-
-When neither method is enabled, `initLocation()` and `locationTick()` are no-ops and `locationEnabled()` returns `false`.
-
-### IP Geolocation Flow
-
-Active when `LOCATION_METHOD_IP_GEOLOCATION == 1`.
-
-1. On `initLocation()`:
-   - Open NVS via `Preferences` (namespace `"yallarm"`, read/write).
-   - Load keys `loc_lat`, `loc_lon`, `loc_city`, `loc_time` (timestamp of last successful fetch, stored as `uint32_t` seconds since epoch or `millis()` at cache time — implementer choice, document the choice in code).
-   - If a cached value exists, seed `currentLocation` with it (`source = LOC_SOURCE_IP`, `valid = true`).
-   - If the cache is missing or older than `IP_GEOLOCATION_REFRESH_MS`, trigger an immediate fetch.
-2. `fetchIpLocation()`:
-   - `HTTPClient` GET `IP_GEOLOCATION_URL` (plain HTTP — `ip-api.com` free tier does not support HTTPS).
-   - Parse response body with `StaticJsonDocument<256>`.
-   - Extract `lat` (float), `lon` (float), `city` (String), `regionName` (String, stored as `region`), `country` (String), `timezone` (String).
-   - On success: update `currentLocation`, set `source = LOC_SOURCE_IP`, `valid = true`, `last_update_ms = millis()`. Persist `loc_lat`, `loc_lon`, `loc_city`, and the timestamp to NVS.
-   - On HTTP error (non-200) or JSON parse failure: keep any previously cached values, leave `valid` at its current state (cached → `true`, no cache → `false`), log to Serial, and retry on the next scheduled refresh.
-3. `locationTick()` triggers `fetchIpLocation()` when `millis() - lastIpFetchMs >= IP_GEOLOCATION_REFRESH_MS`.
-
-Rate limit: `ip-api.com` free tier caps at ~45 req/min per source IP. With a 24h refresh, this is never a concern; do not poll faster than once per hour.
-
-### Integration with Main Loop
-
-- Add to `setup()` after WiFi connects (and before the first WIS poll): `initLocation();`
-- Add to `loop()` right after `audio.loop()`: `locationTick();`
-
-Both calls are safe when location is fully disabled (no-ops).
-
-### Testability
-
-- With IP geolocation enabled: disconnect WiFi after the first successful fetch and confirm the cached value continues to be served with `valid = true`.
-- With IP geolocation disabled: confirm `location` key is absent from `/status` JSON.
-
----
-
-## 9. Web Dashboard
+## 8. Web Dashboard
 
 The ESP32 hosts a minimal HTTP server on port 80 using Arduino's `WebServer.h`.
 
@@ -366,18 +275,9 @@ The ESP32 hosts a minimal HTTP server on port 80 using Arduino's `WebServer.h`.
 ```json
 {
   "wis_score": 14.5, "threshold": 147.2, "wis_pct": 9,
-  "is_live": false, "mode": "off", "state": "IDLE",
-  "location": {
-    "lat": 37.7749, "lon": -122.4194,
-    "city": "San Francisco", "region": "California", "country": "US",
-    "timezone": "America/Los_Angeles",
-    "source": "ip",
-    "valid": true
-  }
+  "is_live": false, "mode": "off", "state": "IDLE"
 }
 ```
-
-The `location` key is **only present** when IP geolocation is enabled and has produced a valid result. When location is disabled, or no valid result exists yet, omit the key entirely — do **not** emit `"location": null`. The `source` field is `"ip"` (`LOC_SOURCE_NONE` means the key is omitted).
 
 ### HTML Page (served inline)
 
@@ -386,7 +286,6 @@ Minimal, no external CSS/JS. Displays:
 - **WIS %** — `wis_pct` as the primary status value (e.g., "9% of threshold")
 - **Live status** — `is_live` from `mode` field (`mode` value shown in parentheses for debugging)
 - **Current LED state**
-- **Location** (lat/lon, city, source) if configured
 - **Override slider** (1–100) and **Submit** button → POST `/override`
 - **Reset** button → POST `/reset`
 
@@ -411,8 +310,7 @@ setup():
   2. Init LittleFS
   3. Init FastLED — set all LEDs to IDLE state
   4. Init WiFiManager (blocking until connected)
-  5. initLocation()                     // no-op if both methods disabled
-  6. Init WebServer
+  5. Init WebServer
   7. Init Audio I2S
   8. Poll WIS immediately — populate wisData before first 60s elapses
   9. updateState(wisData)
@@ -421,8 +319,7 @@ setup():
 loop():
   1. webServer.handleClient()
   2. audio.loop()
-  3. locationTick()                     // triggers IP geolocation refresh if due
-  4. handleDismissButton()
+  3. handleDismissButton()
   5. runLedTick()                       // non-blocking: breath, strobe, bar fill
   6. if millis() - lastWisPollTime >= WIS_POLL_INTERVAL_MS:
          wisData = pollWIS()
@@ -467,6 +364,4 @@ The `.mp3` file should be:
 - [ ] **30m forecast**: `wis.weather_intensity_score_30m_from_now` is available. Could drive a single "rising/falling" indicator LED (e.g., LED 15 pulses orange if 30m forecast > current). Include or skip?
 - [ ] **Threshold floor behavior**: Currently renders `wis_pct = 1` when `threshold < 10`. Alternative: blank the bar entirely on low-threshold days. Which is preferred?
 - [ ] **OTA updates**: Add `ArduinoOTA` support for wireless firmware flashing?
-- [ ] **Location UI**: show a city-name label on the dashboard, or only expose via `/status` JSON?
-- [ ] **Location used for**: pure display, or feed into future location-aware WIS / regional alert features?
-- [ ] **GPS**: See `YALLCALL.md` for the GPS hardware location spec (deferred feature).
+- [ ] **YallCall alerts**: See `YALLCALL.md` for the full geofence alert feature spec (deferred, pending Ryan Hall publishing a YallCall API).

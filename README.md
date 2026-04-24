@@ -60,18 +60,6 @@ LEDs 6–15  → WIS progress bar (6 = bottom, 15 = top)
 
 ---
 
-## Location (Optional)
-
-The device can optionally query a free IP geolocation service over WiFi to determine its approximate location (city-level, no extra hardware). Enable it in `include/config.h`:
-
-```cpp
-#define LOCATION_METHOD_IP_GEOLOCATION  1   // 0 = off
-
-#define IP_GEOLOCATION_URL  "http://ip-api.com/json/?fields=lat,lon,city,regionName,country,timezone"
-```
-
-No API key required. The result is cached in NVS and refreshed daily. Resolved location is exposed on the `/status` JSON endpoint and shown on the dashboard.
-
 ---
 
 ## Software Setup
@@ -159,17 +147,9 @@ Once on your network, the device hosts a dashboard at its local IP address (prin
   "score_30m": 13.59,
   "is_live": false,
   "mode": "off",
-  "state": "IDLE",
-  "location": {
-    "lat": 35.2271,
-    "lon": -80.8431,
-    "city": "Charlotte",
-    "source": "ip"
-  }
+  "state": "IDLE"
 }
 ```
-
-The `location` object is present only when IP geolocation is enabled. `source` is `"ip"`.
 
 ---
 

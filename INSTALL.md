@@ -263,31 +263,7 @@ All tunable settings live in `include/config.h`: poll interval, LED pins, bright
 
 ---
 
-## 12. Enabling Location (Optional)
-
-Out of the box, Y'all-ARM has no idea where it is. That's fine — it doesn't need to know to do its job. But you may want location anyway: future features may surface it on the dashboard, log it with events, or use it for timezone-aware animations, and the `/status` endpoint can expose it for anything else you build on top.
-
-The device uses IP geolocation — one HTTP request to a free service on boot, cached in flash. No wiring, no extra parts, no API key. Accuracy is city-level (1–50 km).
-
-How it works:
-
-- On boot, once WiFi is up, the firmware does a single `GET http://ip-api.com/json/?fields=lat,lon,city,regionName,country,timezone`.
-- The response is cached to NVS so the device has a location immediately on subsequent boots without hitting the internet.
-- The cache is refreshed once per day.
-
-To enable it, open `include/config.h` and flip the flag:
-
-```c
-#define LOCATION_METHOD_IP_GEOLOCATION 1   // 0 = off, 1 = on
-```
-
-Reflash with `pio run --target upload`. No `uploadfs` needed. On the next boot, check the serial monitor for a line like `[location] IP geo: Austin, Texas, US (30.27, -97.74)`.
-
-When location is enabled, the `/status` JSON gains a `location` object — wire it into Home Assistant, a dashboard, or whatever you're building on top.
-
----
-
-## 13. Troubleshooting Quick Reference
+## 12. Troubleshooting Quick Reference
 
 | Symptom | Likely cause |
 |---------|--------------|
@@ -299,13 +275,12 @@ When location is enabled, the `/status` JSON gains a `location` object — wire 
 | Audio is distorted | Lower `AUDIO_VOLUME` in `config.h`, or reduce MAX98357A GAIN. |
 | Device keeps rebooting | Brownout from insufficient 5V current — use a proper adapter, not a weak USB port. |
 | Dashboard says "Offline" forever | ESP32 can't reach the internet — verify it's on your WiFi, not an IoT-isolated guest network. |
-| Location shows as `null` or missing on dashboard | `LOCATION_METHOD_IP_GEOLOCATION` is not enabled in `config.h`, or the IP geolocation service rate-limited you (free tier is 45 req/min — only happens if the device is reboot-looping). |
 
 Check the serial monitor first for any unexplained behavior — the firmware prints useful state transitions there.
 
 ---
 
-## 14. Next Steps
+## 13. Next Steps
 
 - **Customize colors / thresholds:** edit `include/config.h`, reflash.
 - **Change the audio clip:** replace `data/yall_live.mp3`, run `uploadfs`.
