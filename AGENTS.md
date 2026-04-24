@@ -13,9 +13,10 @@
 ```
 yallarm/
 ├── AGENTS.md              # This file
+├── YALLCALL.md            # Future feature spec: GPS location
 ├── src/
 │   ├── main.cpp           # Primary application entry point
-│   └── location.cpp       # Location sensing implementation (optional)
+│   └── location.cpp       # Location sensing implementation (IP geolocation)
 ├── data/
 │   └── yall_live.mp3      # Audio alert file (stored in LittleFS)
 ├── include/
@@ -23,7 +24,7 @@ yallarm/
 │   ├── leds.h             # LED state machine declarations
 │   ├── audio.h            # Audio playback declarations
 │   ├── wis.h              # WIS API polling declarations
-│   └── location.h         # Location sensing declarations (optional)
+│   └── location.h         # Location sensing declarations
 ├── platformio.ini         # PlatformIO build configuration
 └── README.md
 ```
@@ -37,7 +38,6 @@ yallarm/
 | LED Strip         | WS2812B                 | Data: GPIO 18                                           |
 | Audio DAC/Amp     | MAX98357A               | BCLK: 14, LRC: 15, DIN: 16                              |
 | Optional Button   | Tactile switch          | GPIO 0 (boot button or spare)                           |
-| Optional GPS      | NEO-6M / NEO-M8N / L76  | UART1 — GPS TX → GPIO 17 (RX), GPS RX → GPIO 8 (TX), VCC → 3V3, GND → GND |
 
 ### LED Segment Map
 
@@ -64,7 +64,6 @@ lib_deps =
     fastled/FastLED @ ^3.7.0
     schreibfaul1/ESP32-audioI2S @ ^2.0.0
     tzapu/WiFiManager @ ^2.0.17
-    mikalhart/TinyGPSPlus @ ^1.0.3   ; (optional, only when LOCATION_METHOD_GPS is enabled)
 
 board_build.filesystem = littlefs
 ```
@@ -74,7 +73,6 @@ Standard ESP32 libraries used (no `lib_deps` entry needed):
 - `HTTPClient.h`
 - `LittleFS.h`
 - `WebServer.h`
-- `HardwareSerial.h` (GPS UART, when `LOCATION_METHOD_GPS` is enabled)
 - `Preferences.h` (NVS-backed cache for IP geolocation)
 
 ---
@@ -117,24 +115,12 @@ const float WIS_THRESHOLD_FLOOR = 10.0f;
 #define COLOR_MAGENTA   CRGB(200, 0, 200)
 #define COLOR_OFF       CRGB(0, 0, 0)
 
-// Location (optional)
-// Location — both are independently optional. If both enabled, GPS is
-// preferred and IP acts as a fallback when no GPS fix for N minutes.
+// Location (optional — IP geolocation only; see YALLCALL.md for GPS spec)
 #define LOCATION_METHOD_IP_GEOLOCATION  1       // 0 = disable
-#define LOCATION_METHOD_GPS             0       // 0 = disable
 
 // IP geolocation
 #define IP_GEOLOCATION_URL              "http://ip-api.com/json/?fields=lat,lon,city,regionName,country,timezone"
 #define IP_GEOLOCATION_REFRESH_MS       (24UL * 60UL * 60UL * 1000UL)   // 24h
-
-// GPS module (UART1)
-#define GPS_UART_RX_PIN                 17
-#define GPS_UART_TX_PIN                 8
-#define GPS_UART_BAUD                   9600
-#define GPS_FIX_STALE_MS                (5UL * 60UL * 1000UL)           // 5m
-
-// When BOTH are enabled, fall back to IP if GPS has no fresh fix
-#define LOCATION_GPS_TO_IP_FALLBACK_MS  (2UL * 60UL * 1000UL)           // 2m
 ```
 
 ---
@@ -280,43 +266,39 @@ Same logic applies in `STATE_OVERRIDE` when `override_pct == 100`.
 
 ---
 
-## 8. Location (Optional)
+## 8. Location (Optional — IP Geolocation)
 
-Location sensing is fully optional. Two independent methods are supported and may be enabled together. When both are enabled, GPS is preferred and IP acts as a fallback when no fresh GPS fix is available.
+IP geolocation is optional and requires no extra hardware. GPS support is deferred; see `YALLCALL.md` for that spec.
 
 ### Files
 
 - `include/location.h` — public API, enum and struct declarations
-- `src/location.cpp` — implementation (IP fetch, GPS parse, cache, priority resolution)
+- `src/location.cpp` — implementation (IP fetch, NVS cache)
 
 ### Operating Modes
 
-Driven by the compile-time flags `LOCATION_METHOD_IP_GEOLOCATION` and `LOCATION_METHOD_GPS` in `config.h`:
+Driven by `LOCATION_METHOD_IP_GEOLOCATION` in `config.h`:
 
-| IP | GPS | Behavior                                                                 |
-|----|-----|--------------------------------------------------------------------------|
-| 0  | 0   | Location disabled. `location` key omitted from `/status`.                |
-| 1  | 0   | IP only. City-level accuracy, refreshed every `IP_GEOLOCATION_REFRESH_MS`. |
-| 0  | 1   | GPS only. 2–5m accuracy outdoors; `valid = false` until first fix.       |
-| 1  | 1   | GPS preferred; IP fallback when GPS has no fix younger than `LOCATION_GPS_TO_IP_FALLBACK_MS`. |
-
-**Design note:** A GPS module typically produces no fix indoors. A desk-bound device will therefore show `valid = false` in GPS-only mode until it is moved near a window or outdoors. If indoor coverage matters, enable IP as well.
+| Value | Behavior                                                                    |
+|-------|-----------------------------------------------------------------------------|
+| 0     | Location disabled. `location` key omitted from `/status`.                   |
+| 1     | IP geolocation. City-level accuracy, refreshed every `IP_GEOLOCATION_REFRESH_MS`. |
 
 ### Types
 
 ```cpp
-enum LocationSource { LOC_SOURCE_NONE, LOC_SOURCE_IP, LOC_SOURCE_GPS };
+enum LocationSource { LOC_SOURCE_NONE, LOC_SOURCE_IP };
 
 struct LocationData {
-    float         lat;
-    float         lon;
-    String        city;          // IP-based only; empty for GPS
-    String        region;        // IP-based only; empty for GPS
-    String        country;       // IP-based only; empty for GPS
-    String        timezone;      // IP-based only; empty for GPS
+    float          lat;
+    float          lon;
+    String         city;
+    String         region;
+    String         country;
+    String         timezone;
     LocationSource source;
-    uint32_t      last_update_ms;
-    bool          valid;
+    uint32_t       last_update_ms;
+    bool           valid;
 };
 ```
 
@@ -352,51 +334,6 @@ Active when `LOCATION_METHOD_IP_GEOLOCATION == 1`.
 
 Rate limit: `ip-api.com` free tier caps at ~45 req/min per source IP. With a 24h refresh, this is never a concern; do not poll faster than once per hour.
 
-### GPS Flow
-
-Active when `LOCATION_METHOD_GPS == 1`.
-
-1. On `initLocation()`:
-   - Instantiate a module-private `HardwareSerial Serial1(1)` and `TinyGPSPlus gps`.
-   - Call `Serial1.begin(GPS_UART_BAUD, SERIAL_8N1, GPS_UART_RX_PIN, GPS_UART_TX_PIN)`.
-   - Leave `currentLocation.valid = false` until the first valid fix arrives.
-2. `locationTick()` (must run every `loop()` iteration, non-blocking):
-   ```cpp
-   while (Serial1.available()) {
-       gps.encode(Serial1.read());
-   }
-   if (gps.location.isValid() && gps.location.isUpdated()) {
-       currentLocation.lat            = (float)gps.location.lat();
-       currentLocation.lon            = (float)gps.location.lng();
-       currentLocation.city           = "";
-       currentLocation.region         = "";
-       currentLocation.country        = "";
-       currentLocation.timezone       = "";
-       currentLocation.source         = LOC_SOURCE_GPS;
-       currentLocation.last_update_ms = millis();
-       currentLocation.valid          = true;
-   }
-   ```
-3. A GPS fix is considered **stale** when `gps.location.age() > GPS_FIX_STALE_MS`. Stale fixes do not overwrite `currentLocation` and, when GPS is the active source, cause `valid` to be set to `false` on the next tick until a fresh fix arrives.
-
-### Priority Resolution (Both Methods Enabled)
-
-Evaluated in `locationTick()` after GPS bytes are serviced and after any scheduled IP refresh:
-
-```
-if (GPS has a fix AND gps.location.age() <= LOCATION_GPS_TO_IP_FALLBACK_MS):
-    currentLocation.source = LOC_SOURCE_GPS
-    (populated from latest gps.location values)
-else if (IP cache is valid):
-    currentLocation.source = LOC_SOURCE_IP
-    (populated from IP cache)
-else:
-    currentLocation.valid = false
-    currentLocation.source = LOC_SOURCE_NONE
-```
-
-The switch between sources is evaluated on every tick — no hysteresis. A `Serial.printf` log line is emitted whenever `source` changes.
-
 ### Integration with Main Loop
 
 - Add to `setup()` after WiFi connects (and before the first WIS poll): `initLocation();`
@@ -406,12 +343,8 @@ Both calls are safe when location is fully disabled (no-ops).
 
 ### Testability
 
-Every behavior above must be individually verifiable:
-
-- Compile with each of the four IP/GPS combinations and confirm the `/status` JSON matches the mode table.
-- With IP only: disconnect WiFi after the first successful fetch and confirm the cached value continues to be served with `valid = true`.
-- With GPS only: confirm `valid = false` before first fix, `true` after, and `false` again once `gps.location.age() > GPS_FIX_STALE_MS`.
-- With both: unplug GPS antenna and confirm `source` transitions from `gps` to `ip` within `LOCATION_GPS_TO_IP_FALLBACK_MS`.
+- With IP geolocation enabled: disconnect WiFi after the first successful fetch and confirm the cached value continues to be served with `valid = true`.
+- With IP geolocation disabled: confirm `location` key is absent from `/status` JSON.
 
 ---
 
@@ -444,7 +377,7 @@ The ESP32 hosts a minimal HTTP server on port 80 using Arduino's `WebServer.h`.
 }
 ```
 
-The `location` key is **only present** when at least one location method is enabled and has produced a valid result. When location is disabled, or no valid fix exists yet, omit the key entirely — do **not** emit `"location": null`. The `source` field is one of `"ip"` or `"gps"` (mapped from `LocationSource`; `LOC_SOURCE_NONE` means the key is omitted). For GPS-sourced fixes, `city`, `region`, `country`, and `timezone` are empty strings.
+The `location` key is **only present** when IP geolocation is enabled and has produced a valid result. When location is disabled, or no valid result exists yet, omit the key entirely — do **not** emit `"location": null`. The `source` field is `"ip"` (`LOC_SOURCE_NONE` means the key is omitted).
 
 ### HTML Page (served inline)
 
@@ -488,7 +421,7 @@ setup():
 loop():
   1. webServer.handleClient()
   2. audio.loop()
-  3. locationTick()                     // services GPS bytes; triggers IP refresh
+  3. locationTick()                     // triggers IP geolocation refresh if due
   4. handleDismissButton()
   5. runLedTick()                       // non-blocking: breath, strobe, bar fill
   6. if millis() - lastWisPollTime >= WIS_POLL_INTERVAL_MS:
@@ -534,5 +467,6 @@ The `.mp3` file should be:
 - [ ] **30m forecast**: `wis.weather_intensity_score_30m_from_now` is available. Could drive a single "rising/falling" indicator LED (e.g., LED 15 pulses orange if 30m forecast > current). Include or skip?
 - [ ] **Threshold floor behavior**: Currently renders `wis_pct = 1` when `threshold < 10`. Alternative: blank the bar entirely on low-threshold days. Which is preferred?
 - [ ] **OTA updates**: Add `ArduinoOTA` support for wireless firmware flashing?
-- [ ] **Location UI**: show a small city-name label or lat/lon coordinates on the dashboard, or only expose via `/status` JSON?
+- [ ] **Location UI**: show a city-name label on the dashboard, or only expose via `/status` JSON?
 - [ ] **Location used for**: pure display, or feed into future location-aware WIS / regional alert features?
+- [ ] **GPS**: See `YALLCALL.md` for the GPS hardware location spec (deferred feature).
