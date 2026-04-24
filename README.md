@@ -107,7 +107,7 @@ Resolved location is exposed on the `/status` JSON endpoint and shown on the das
 
 ### Requirements
 
-- [PlatformIO](https://platformio.org/) (VS Code extension or CLI)
+- [PlatformIO](https://platformio.org/) CLI
 - Python 3 (for PlatformIO)
 
 ### Build & Flash

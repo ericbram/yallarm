@@ -3,9 +3,14 @@
 // =============================================================================
 // NETWORK
 // =============================================================================
-// WiFi credentials are NOT hardcoded. On first boot (or after a factory reset),
-// the device broadcasts a WiFi hotspot named WIFI_AP_NAME. Connect to it from
-// your phone and enter your home WiFi credentials through the captive portal.
+// Optional compile-time WiFi credentials — useful during development to skip
+// the captive portal on every reflash. If defined, the device tries these first
+// and only falls back to the portal if the connection fails.
+// Leave commented out for normal use.
+// #define WIFI_SSID       "YourNetworkName"
+// #define WIFI_PASSWORD   "YourPassword"
+
+// Captive portal settings (used when compile-time credentials are absent or fail)
 #define WIFI_AP_NAME        "YallARM-Setup"
 #define WIFI_AP_TIMEOUT_S   180             // seconds before AP times out and device restarts
 

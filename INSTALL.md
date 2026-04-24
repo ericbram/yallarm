@@ -30,8 +30,7 @@ A complete, from-scratch walkthrough to build, flash, and run Y'all-ARM on an ES
 | Tool | Why | How to get it |
 |------|-----|---------------|
 | **Python 3.9+** | PlatformIO runs on Python. | `brew install python` on macOS, or python.org. |
-| **PlatformIO Core** | Build + flash toolchain. | Install via the VS Code extension (easiest) **or** `pip install platformio`. |
-| **VS Code** (recommended) | IDE with a one-click build/flash button. | code.visualstudio.com |
+| **PlatformIO Core** | Build + flash toolchain. | `pip install platformio` |
 | **USB-serial drivers** | So your OS sees the board. | See step 3 — usually not needed on modern macOS/Linux. |
 | **Git** | To clone the repo. | Pre-installed on macOS; `apt install git` on Linux. |
 
@@ -100,14 +99,6 @@ If the LED stays dark entirely, double-check 3.3V and GND and confirm the module
 
 ## 3. Install the Toolchain
 
-### Option A — VS Code + PlatformIO extension (recommended)
-
-1. Install [VS Code](https://code.visualstudio.com/).
-2. Open VS Code → Extensions panel (⇧⌘X) → search **"PlatformIO IDE"** → Install.
-3. Wait 2–5 minutes for it to finish installing the core and toolchain (watch the status bar — it'll say "Finish PlatformIO setup" when done). **Restart VS Code when prompted.**
-
-### Option B — PlatformIO CLI only
-
 ```bash
 python3 -m pip install --user platformio
 
@@ -145,13 +136,7 @@ git clone https://github.com/ericbram/yallarm.git
 cd yallarm
 ```
 
-### Open in VS Code (option A users)
-
-```bash
-code .
-```
-
-PlatformIO auto-detects `platformio.ini` and downloads the project's library dependencies (FastLED, ArduinoJson, ESP32-audioI2S, WiFiManager) — give it a minute. You'll see progress in the bottom-status-bar terminal.
+PlatformIO will download the project's library dependencies (FastLED, ArduinoJson, ESP32-audioI2S, WiFiManager) automatically on first build.
 
 ---
 
@@ -190,14 +175,6 @@ ffmpeg -i input.mp3 -ar 44100 -b:a 128k -ac 2 data/yall_live.mp3
 
 With the board connected via USB:
 
-### From VS Code
-
-1. Click the PlatformIO alien icon in the left sidebar.
-2. Under **Project Tasks → esp32-s3-devkitc-1 → General**, click **Upload**.
-3. Watch the terminal. You should see `Writing at 0x...` progress, then `Hash of data verified.` and `Leaving...`.
-
-### From the CLI
-
 ```bash
 # Compile + upload firmware
 pio run --target upload
@@ -222,12 +199,6 @@ pio run --target uploadfs
 ## 7. Watch It Boot
 
 Open the serial monitor to see what the device is doing:
-
-### From VS Code
-
-Click **Monitor** in the PlatformIO Project Tasks.
-
-### From the CLI
 
 ```bash
 pio device monitor

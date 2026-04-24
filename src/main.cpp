@@ -171,11 +171,19 @@ void setup() {
     ledsInit();
     pinMode(DISMISS_PIN, INPUT_PULLUP);
 
-    WiFiManager wm;
-    wm.setConfigPortalTimeout(WIFI_AP_TIMEOUT_S);
-    if (!wm.autoConnect(WIFI_AP_NAME)) {
-        Serial.println("[wifi] Config portal timed out — restarting");
-        ESP.restart();
+#if defined(WIFI_SSID) && defined(WIFI_PASSWORD)
+    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    Serial.printf("[wifi] Trying compile-time credentials for \"%s\"\n", WIFI_SSID);
+    uint32_t wifiStart = millis();
+    while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < 15000) delay(500);
+#endif
+    if (WiFi.status() != WL_CONNECTED) {
+        WiFiManager wm;
+        wm.setConfigPortalTimeout(WIFI_AP_TIMEOUT_S);
+        if (!wm.autoConnect(WIFI_AP_NAME)) {
+            Serial.println("[wifi] Config portal timed out — restarting");
+            ESP.restart();
+        }
     }
     Serial.printf("[wifi] Connected  IP: %s\n", WiFi.localIP().toString().c_str());
 
