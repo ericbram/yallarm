@@ -24,6 +24,7 @@ A desktop IoT device that monitors [Ryan Hall Y'all's](https://ryanhallyall.com)
 | LEDs | WS2812B strip (16 LEDs) | NeoPixel-compatible |
 | Audio DAC/Amp | MAX98357A | I2S, drives a small speaker directly |
 | Button (optional) | Tactile switch | Dismisses the alert |
+| GPS module (optional) | NEO-6M / NEO-M8N / L76 | Only needed for GPS-based location (Method 2); ~$8–15 over UART |
 
 ### Wiring
 
@@ -34,6 +35,15 @@ A desktop IoT device that monitors [Ryan Hall Y'all's](https://ryanhallyall.com)
 | I2S LRC | 15 |
 | I2S DIN | 16 |
 | Dismiss Button | 0 (boot button) |
+
+Optional GPS module (only if using Method 2 below):
+
+| Signal | GPIO | Notes |
+|--------|------|-------|
+| GPS TX → ESP32 RX | 17 | UART RX |
+| GPS RX → ESP32 TX | 8 | UART TX |
+| GPS VCC | 3.3V | — |
+| GPS GND | GND | — |
 
 ### LED Layout
 
@@ -57,6 +67,39 @@ LEDs 6–15  → WIS progress bar (6 = bottom, 15 = top)
 - 1–40% → Blue
 - 41–70% → Teal
 - 71–100% → Magenta (+ strobe at 100%)
+
+---
+
+## Location (Optional)
+
+The device can optionally determine its own location via one of two methods. Both are off by default. Enable either, both, or neither in `include/config.h`. When both are enabled, GPS is preferred with IP-based as fallback.
+
+| Method | Hardware | Accuracy | Notes |
+|--------|----------|----------|-------|
+| IP-based geolocation | None (uses existing WiFi) | City-level (1–50 km) | Easiest option; zero BOM impact |
+| GPS module | NEO-6M / NEO-M8N / L76 over UART | 2–5 m outdoors | Requires clear sky view; typically no fix indoors |
+
+**Method 1 — IP-based geolocation**
+
+Uses the existing WiFi connection to query a free service (e.g. `http://ip-api.com/json/`). No API key required on the free tier (~45 req/min limit). Parsed with ArduinoJson, cached in NVS/LittleFS, refreshed daily.
+
+**Method 2 — Onboard GPS module**
+
+Adds a NEO-6M / NEO-M8N / L76-style GPS module on UART (see wiring above). Uses [`mikalhart/TinyGPSPlus`](https://github.com/mikalhart/TinyGPSPlus) — add to `lib_deps` when enabled. Typical cold-start time to first fix: 30–60 seconds. Essentially useless indoors without a window view — noteworthy for a desk device. Best for portable/travel use or when precise location is needed.
+
+Resolved location is exposed on the `/status` JSON endpoint and shown on the dashboard.
+
+```cpp
+// Enable one, both, or neither
+#define LOCATION_METHOD_IP_GEOLOCATION  1
+#define LOCATION_METHOD_GPS             0
+
+#define IP_GEOLOCATION_URL              "http://ip-api.com/json/?fields=lat,lon,city,regionName,country,timezone"
+
+#define GPS_UART_RX_PIN                 17
+#define GPS_UART_TX_PIN                 8
+#define GPS_UART_BAUD                   9600
+```
 
 ---
 
@@ -145,9 +188,17 @@ Once on your network, the device hosts a dashboard at its local IP address (prin
   "score_30m": 13.59,
   "is_live": false,
   "mode": "off",
-  "state": "IDLE"
+  "state": "IDLE",
+  "location": {
+    "lat": 35.2271,
+    "lon": -80.8431,
+    "city": "Charlotte",
+    "source": "ip"
+  }
 }
 ```
+
+The `location` object is present only when a location method is enabled. `source` is `"ip"` or `"gps"`.
 
 ---
 
@@ -181,6 +232,7 @@ yallarm/
 | [ESP32-audioI2S](https://github.com/schreibfaul1/ESP32-audioI2S) | MP3 playback via I2S |
 | [ArduinoJson](https://arduinojson.org/) | WIS API JSON parsing |
 | [WiFiManager](https://github.com/tzapu/WiFiManager) | Captive portal WiFi setup |
+| [TinyGPSPlus](https://github.com/mikalhart/TinyGPSPlus) | GPS NMEA parsing (only if using GPS) |
 
 ---
 

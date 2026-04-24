@@ -23,6 +23,7 @@ A complete, from-scratch walkthrough to build, flash, and run Y'all-ARM on an ES
 
 - **Tactile button** — wired to GPIO 0 (the onboard BOOT button works too; wiring an external one is only needed if your enclosure hides the DevKit).
 - **3D-printed enclosure** — the "ON AIR" logo and bar diffuser. Not covered here.
+- **GPS module** (NEO-6M, NEO-M8N, or L76-style UART module, ~$8–15 on Amazon/AliExpress) — **only needed if you want onboard GPS location via Method B in section 12.** Not needed for IP-based location (Method A) or for normal operation. Most breakouts include a small ceramic antenna; a dedicated external active antenna helps if the device lives indoors.
 
 ### Software (required on your computer)
 
@@ -70,6 +71,30 @@ With nothing flashed yet, before powering up:
 1. Double-check 5V and GND are not shorted (meter in continuity mode).
 2. Confirm the LED strip's `DIN` end is the one wired to GPIO 18 (strips have a direction arrow — data flows **with** the arrow).
 3. The MAX98357A's `GAIN` pin can be left floating for 9dB (default). Tie it to GND for 12dB or VIN for 15dB if the speaker is too quiet.
+
+### Optional: GPS module wiring (for onboard location)
+
+Skip this entire subsection unless you bought a GPS module and want to use Method B in section 12. If you're only doing IP-based location (Method A) or don't care about location at all, the device works fine without any of this.
+
+The GPS talks to the ESP32 over a UART serial link at 9600 baud. TX on one side goes to RX on the other side — it's easy to get backwards the first time, so take your time here.
+
+| Signal | GPS pin | ESP32-S3 GPIO |
+|--------|---------|---------------|
+| GPS TX | `TX` | GPIO 17 (RX on ESP32) |
+| GPS RX | `RX` | GPIO 8 (TX on ESP32) |
+| Power | `VCC` | 3.3V |
+| Ground | `GND` | GND |
+
+**Voltage caveat — read this before wiring power:** `VCC` must be **3.3V** on most modules. A bare NEO-6M or NEO-M8N chip is 3.3V-only and wiring it to 5V will cook it. Some breakout boards include an onboard regulator and accept 5V input — **confirm your specific breakout before wiring to 5V**, either from the silkscreen or the seller's spec sheet. When in doubt, use 3.3V from the DevKit's `3V3` pin.
+
+**Ground:** tie GPS `GND` to the same common ground bus as the ESP32, LED strip, and amp. Everything shares one ground.
+
+**The 1Hz fix LED:** almost every GPS breakout has a tiny LED (usually labeled `PPS` or `FIX`) that does one of two things:
+
+- **Solid on or off** → no satellite fix yet. Cold start takes 30–60 seconds outdoors with a clear sky view; indoors you may never get a fix unless you're near a window.
+- **Blinks once per second** → fix acquired. This is your hardware-level confirmation that the module is alive and seeing satellites, before you even flash the firmware.
+
+If the LED stays dark entirely, double-check 3.3V and GND and confirm the module isn't wired backwards.
 
 ---
 
@@ -292,7 +317,69 @@ All tunable settings live in `include/config.h`: poll interval, LED pins, bright
 
 ---
 
-## 12. Troubleshooting Quick Reference
+## 12. Enabling Location (Optional)
+
+Out of the box, Y'all-ARM has no idea where it is. That's fine — it doesn't need to know to do its job. But you may want location anyway: future features may surface it on the dashboard, log it with events, or use it for timezone-aware animations, and the `/status` endpoint can expose it for anything else you build on top.
+
+There are two ways to give the device a sense of place. They're mutually optional — you can run either alone, run both together (GPS preferred, IP fallback), or skip location entirely.
+
+### Method A — IP geolocation (no extra hardware)
+
+This is the easy default. The device makes one HTTP request on boot to a free public geolocation service and caches the result in flash. No wiring, no extra parts, no API key. Accuracy is city-level — anywhere from 1 to 50 km depending on what your ISP publishes for your IP block.
+
+How it works:
+
+- On boot, once WiFi is up, the firmware does a single `GET http://ip-api.com/json/?fields=lat,lon,city,regionName,country,timezone`.
+- The response (lat, lon, city, region, country, timezone) is cached to NVS/LittleFS so the device has a location immediately on subsequent boots without hitting the internet.
+- The cache is refreshed once per day.
+
+To enable it, open `include/config.h` and flip the flag:
+
+```c
+// Location sensing
+#define LOCATION_METHOD_IP_GEOLOCATION 1   // 0 = off, 1 = on
+```
+
+Reflash with `pio run --target upload`. That's it. No `uploadfs` needed. On the next boot, check the serial monitor for a line like `[location] IP geo: Austin, Texas, US (30.27, -97.74)` and you're done.
+
+### Method B — GPS module (optional hardware)
+
+More precise (2–5 m outdoors) and doesn't depend on an internet lookup, but it requires a small extra board and a view of the sky. Good for a window-sill install; not great for a basement.
+
+**Prerequisites:**
+
+1. **Hardware:** a NEO-6M, NEO-M8N, or L76-style UART GPS module wired up per the pin-map in section 2 under "Optional: GPS module wiring." If you haven't wired it yet, do that first.
+2. **Library:** open `platformio.ini` and add the TinyGPSPlus library to `lib_deps`:
+
+   ```ini
+   lib_deps =
+       ; ...existing entries...
+       mikalhart/TinyGPSPlus @ ^1.0.3
+   ```
+
+3. **Config flag:** in `include/config.h`, enable GPS:
+
+   ```c
+   // Location sensing
+   #define LOCATION_METHOD_GPS 1   // 0 = off, 1 = on
+   ```
+
+Then rebuild and reflash with `pio run --target upload`. PlatformIO will pull down TinyGPSPlus on the next build.
+
+**Verify it works:**
+
+- On boot, check the serial monitor for a line like `[gps] Searching for fix…`.
+- Move the device near a window or outside and give it 30–60 seconds for a cold start (a few seconds for a warm start if it's been used recently).
+- The module's onboard fix LED should start blinking once per second when it locks on.
+- Open `http://<device-ip>/status` in a browser. Once the module gets a fix, you should see a `location` object populated with `lat`, `lon`, and `source: "gps"`. Before the fix lands, `lat`/`lon` will be absent or `null`.
+
+**Running both at the same time:** if you enable both `LOCATION_METHOD_IP_GEOLOCATION` and `LOCATION_METHOD_GPS`, the firmware uses GPS when it has a fix and falls back to the cached IP geolocation otherwise. The `source` field in `/status` tells you which one is currently winning.
+
+When either method is enabled, the `/status` JSON gains a `location` object — wire it into Home Assistant, a dashboard, or whatever you're building on top.
+
+---
+
+## 13. Troubleshooting Quick Reference
 
 | Symptom | Likely cause |
 |---------|--------------|
@@ -304,12 +391,15 @@ All tunable settings live in `include/config.h`: poll interval, LED pins, bright
 | Audio is distorted | Lower `AUDIO_VOLUME` in `config.h`, or reduce MAX98357A GAIN. |
 | Device keeps rebooting | Brownout from insufficient 5V current — use a proper adapter, not a weak USB port. |
 | Dashboard says "Offline" forever | ESP32 can't reach the internet — verify it's on your WiFi, not an IoT-isolated guest network. |
+| Location shows as `null` or missing on dashboard | Neither location method is enabled in `config.h`, or the IP geolocation service rate-limited you (free tier allows 45 requests/min per IP — hitting it shouldn't happen in normal use, but can if you're reboot-looping). |
+| GPS fix never arrives | Indoor install with no sky view, GPS antenna not plugged in (for modules with a separate antenna), or the module is running at the wrong baud rate — firmware expects 9600, which is the default for NEO-6M/NEO-M8N/L76. |
+| GPS module gets hot or power LED flickers | Almost always `VCC` wired to 5V on a 3.3V-only module. Disconnect power immediately and move `VCC` to the `3V3` pin. |
 
 Check the serial monitor first for any unexplained behavior — the firmware prints useful state transitions there.
 
 ---
 
-## 13. Next Steps
+## 14. Next Steps
 
 - **Customize colors / thresholds:** edit `include/config.h`, reflash.
 - **Change the audio clip:** replace `data/yall_live.mp3`, run `uploadfs`.
