@@ -170,8 +170,11 @@ yallarm/
 ├── data/
 │   └── yall_live.mp3  # Alert audio (add your own — not in repo)
 ├── platformio.ini     # Build config and library dependencies
-├── AGENTS.md          # Full implementation spec
-└── YALLCALL.md        # Future feature spec (GPS location)
+└── docs/
+    ├── AGENTS.md      # Full implementation spec
+    ├── INSTALL.md     # Build and flash guide
+    ├── YALLCALL.md    # Future feature spec (YallCall geofence alerts)
+    └── MODEL_PROMPT.md # AI model context document
 ```
 
 ---

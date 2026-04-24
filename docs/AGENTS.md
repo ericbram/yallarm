@@ -12,19 +12,27 @@
 
 ```
 yallarm/
-├── AGENTS.md              # This file
-├── YALLCALL.md            # Future feature spec: YallCall geofence alerts
+├── README.md
+├── platformio.ini         # PlatformIO build configuration
+├── Dockerfile             # Container build + test environment
+├── docs/
+│   ├── AGENTS.md          # This file — implementation spec
+│   ├── INSTALL.md         # Build and flash guide
+│   ├── YALLCALL.md        # Future feature spec: YallCall geofence alerts
+│   └── MODEL_PROMPT.md    # AI model context document
 ├── src/
-│   ├── main.cpp           # Primary application entry point
-├── data/
-│   └── yall_live.mp3      # Audio alert file (stored in LittleFS)
+│   └── main.cpp           # Primary application entry point
 ├── include/
 │   ├── config.h           # Pin definitions, constants, endpoint URL
 │   ├── leds.h             # LED state machine declarations
 │   ├── audio.h            # Audio playback declarations
 │   └── wis.h              # WIS API polling declarations
-├── platformio.ini         # PlatformIO build configuration
-└── README.md
+├── data/
+│   └── yall_live.mp3      # Audio alert file (stored in LittleFS)
+└── test/
+    ├── test_wis/          # WIS calc unit tests (native)
+    ├── test_leds/         # LED calc unit tests (native)
+    └── test_config/       # Config constant validation tests (native)
 ```
 
 ---

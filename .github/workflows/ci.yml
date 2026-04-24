@@ -61,3 +61,19 @@ jobs:
 
       - name: Build firmware
         run: pio run -e esp32-s3-devkitc-1
+
+  # -----------------------------------------------------------------------
+  # Job 3: Docker build — verifies the Dockerfile builds successfully.
+  # Catches regressions in the container image used for local dev.
+  # Does NOT run tests inside the image here; that is covered by jobs 1 & 2
+  # above (which use the same commands but run faster without Docker overhead).
+  # -----------------------------------------------------------------------
+  docker-build:
+    name: Docker Image Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t yallarm:ci .
