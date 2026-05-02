@@ -20,20 +20,32 @@ A desktop IoT device that monitors [Ryan Hall Y'all's](https://ryanhallyall.com)
 
 | Component | Part | Notes |
 |-----------|------|-------|
-| Microcontroller | ESP32-S3 DevKit | Any ESP32-S3 DevKitC-1 variant |
+| Microcontroller | ESP32-S3-DevKitC-1-N8R8 | Any ESP32-S3 DevKitC-1 variant works; this build is wired for the N8R8 |
 | LEDs | WS2812B strip (16 LEDs) | NeoPixel-compatible |
 | Audio DAC/Amp | MAX98357A | I2S, drives a small speaker directly |
 | Button (optional) | Tactile switch | Dismisses the alert |
 
 ### Wiring
 
-| Signal | GPIO |
-|--------|------|
-| LED Data | 18 |
-| I2S BCLK | 14 |
-| I2S LRC | 15 |
-| I2S DIN | 16 |
-| Dismiss Button | 0 (boot button) |
+Power everything from the **5V** pin on the DevKit (USB-C provides 5V), not the 3V3 pin — the 3.3V regulator can't supply enough current for the LEDs and the amp running together. Tie all grounds together (LED strip, amp, ESP32, PSU).
+
+| Signal | GPIO | Connects to |
+|--------|------|-------------|
+| LED Data | 18 | WS2812B `DIN` (via 330–470Ω resistor) |
+| LED 5V | 5V | WS2812B `5V` |
+| LED GND | GND | WS2812B `GND` |
+| I2S BCLK | 15 | MAX98357A `BCLK` |
+| I2S LRC | 16 | MAX98357A `LRC` |
+| I2S DIN | 17 | MAX98357A `DIN` |
+| Amp 5V | 5V | MAX98357A `VIN` (5V gives more headroom than 3V3) |
+| Amp GND | GND | MAX98357A `GND` |
+| Dismiss Button | 4 | Button → GND (firmware uses INPUT_PULLUP — no external resistor) |
+
+**Notes:**
+- Add a 330–470Ω series resistor between GPIO 18 and the LED strip's `DIN`.
+- A 1000µF capacitor across the strip's 5V/GND smooths inrush current.
+- The picked GPIOs (4, 15, 16, 17, 18) avoid the ESP32-S3 strapping pins (0, 3, 45, 46), so the board boots cleanly every power cycle.
+- The DevKitC-1 has two USB-C ports labeled `UART` and `USB`. Use the `UART` port for flashing and serial monitoring.
 
 ### LED Layout
 
@@ -111,11 +123,26 @@ Requirements:
 // Change button pin...
 ```
 
-WiFi credentials are **not** stored in code — they're configured at runtime through the captive portal.
+### WiFi Credentials
+
+Two ways to get the device on WiFi:
+
+1. **Captive portal** (default, zero setup) — power it on, join the `YallARM-Setup` network, pick your WiFi in the portal. Credentials are persisted to flash; subsequent boots reconnect automatically.
+2. **Compile-time via `include/secrets.h`** (skips the portal on every flash) — recommended for active development. The file is gitignored so credentials never end up in source control.
+
+To use option 2:
+
+```bash
+cp include/secrets.h.example include/secrets.h
+# edit include/secrets.h and set WIFI_SSID / WIFI_PASSWORD
+pio run --target upload
+```
+
+If `include/secrets.h` is missing or the credentials don't connect within ~15 seconds, the firmware falls back to the captive portal automatically.
 
 ---
 
-## First Boot (WiFi Setup)
+## First Boot (WiFi Setup, captive portal)
 
 1. Power on the device
 2. It will broadcast a WiFi network called **`YallARM-Setup`**
@@ -123,7 +150,7 @@ WiFi credentials are **not** stored in code — they're configured at runtime th
 4. Enter your home WiFi SSID and password
 5. The device saves credentials to flash and reboots onto your network
 
-To reconfigure WiFi later, hold the dismiss button on boot (or use the WiFiManager reset flow).
+To reconfigure WiFi later, use the WiFiManager reset flow from the dashboard, or reflash with `include/secrets.h` updated (or removed) and erase flash.
 
 ---
 
@@ -158,15 +185,16 @@ Once on your network, the device hosts a dashboard at its local IP address (prin
 ```
 yallarm/
 ├── include/
-│   ├── config.h       # All configuration — start here
-│   ├── wis.h          # WIS API types and declarations
-│   ├── leds.h         # LED state machine declarations
-│   └── audio.h        # Audio playback declarations
+│   ├── config.h            # All configuration — start here
+│   ├── secrets.h.example   # Copy → secrets.h to bake WiFi creds in (gitignored)
+│   ├── wis.h               # WIS API types and declarations
+│   ├── leds.h              # LED state machine declarations
+│   └── app_audio.h         # Audio playback declarations
 ├── src/
-│   ├── main.cpp       # Setup, loop, web server, state machine
-│   ├── wis.cpp        # HTTP polling and WIS % calculation
-│   ├── leds.cpp       # FastLED animations and state machine
-│   └── audio.cpp      # I2S audio via ESP32-audioI2S
+│   ├── main.cpp            # Setup, loop, web server, state machine
+│   ├── wis.cpp             # HTTP polling and WIS % calculation
+│   ├── leds.cpp            # FastLED animations and state machine
+│   └── app_audio.cpp       # I2S audio via ESP32-audioI2S
 ├── data/
 │   └── yall_live.mp3  # Alert audio (add your own — not in repo)
 ├── platformio.ini     # Build config and library dependencies

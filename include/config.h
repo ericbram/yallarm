@@ -4,11 +4,12 @@
 // NETWORK
 // =============================================================================
 // Optional compile-time WiFi credentials — useful during development to skip
-// the captive portal on every reflash. If defined, the device tries these first
-// and only falls back to the portal if the connection fails.
-// Leave commented out for normal use.
-// #define WIFI_SSID       "YourNetworkName"
-// #define WIFI_PASSWORD   "YourPassword"
+// the captive portal on every reflash. Put real values in `include/secrets.h`
+// (gitignored — copy `secrets.h.example` to start). If the file is absent or
+// the credentials don't connect, the device falls back to the captive portal.
+#if __has_include("secrets.h")
+    #include "secrets.h"
+#endif
 
 // Captive portal settings (used when compile-time credentials are absent or fail)
 #define WIFI_AP_NAME        "YallARM-Setup"
@@ -51,16 +52,19 @@
 // =============================================================================
 // AUDIO — I2S / MAX98357A
 // =============================================================================
-#define I2S_BCLK_PIN        14
-#define I2S_LRC_PIN         15
-#define I2S_DOUT_PIN        16
+#define I2S_BCLK_PIN        15
+#define I2S_LRC_PIN         16
+#define I2S_DOUT_PIN        17
 #define AUDIO_FILE          "/yall_live.mp3"    // path inside LittleFS (data/ folder)
 #define AUDIO_VOLUME        15                  // 0 (silent) to 21 (max)
 
 // =============================================================================
 // DISMISS BUTTON
 // =============================================================================
-#define DISMISS_PIN             0       // GPIO 0 = boot button on most ESP32-S3 DevKits
+// GPIO 4 — safe input pin on the ESP32-S3-DevKitC-1. Avoids the strapping pins
+// (0, 3, 45, 46) that affect boot mode. Wire the button between GPIO 4 and GND;
+// INPUT_PULLUP is enabled in firmware, so no external resistor is needed.
+#define DISMISS_PIN             4
 #define DISMISS_DEBOUNCE_MS     50
 
 // =============================================================================

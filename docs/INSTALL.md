@@ -10,7 +10,7 @@ A complete, from-scratch walkthrough to build, flash, and run Y'all-ARM on an ES
 
 | Item | Specifics | Notes |
 |------|-----------|-------|
-| ESP32-S3 DevKitC-1 | Any ESP32-S3 DevKitC-1 variant (N8R2, N16R8, etc.) | The board this firmware targets. Boards with the WROOM-1 module work fine. |
+| ESP32-S3 DevKitC-1 | ESP32-S3-DevKitC-1-N8R8 (or any DevKitC-1 variant: N8R2, N16R8, etc.) | The board this firmware targets. Boards with the WROOM-1 module work fine. The N8R8 is what this build was wired against. |
 | USB-C cable | **Data-capable** USB-C (not charge-only) | Many cheap cables are power-only and will appear to do nothing. If the board doesn't show up as a serial port, try a different cable first. |
 | WS2812B LED strip | 16 LEDs, 5V, "NeoPixel-compatible" | Must support the 800 kHz WS2812 timing. SK6812 usually works too. |
 | MAX98357A I2S amp | Breakout board (Adafruit #3006 or equivalent) | Drives a speaker directly from the ESP32. |
@@ -21,7 +21,9 @@ A complete, from-scratch walkthrough to build, flash, and run Y'all-ARM on an ES
 
 ### Hardware (optional)
 
-- **Tactile button** — wired to GPIO 0 (the onboard BOOT button works too; wiring an external one is only needed if your enclosure hides the DevKit).
+- **Tactile button** — wired to GPIO 4. GPIO 4 is a regular input pin (not a strapping pin), so the board boots cleanly whether the button is pressed or not. The firmware enables `INPUT_PULLUP`, so wire the button directly between GPIO 4 and GND with no external resistor.
+- **Resistor (330–470Ω)** — in series between GPIO 18 and the LED strip's `DIN`. Protects the first pixel from current spikes on the data line.
+- **Capacitor (1000µF, 6.3V+)** — across the LED strip's 5V/GND pads, near the strip. Smooths inrush current when many LEDs change brightness at once.
 - **3D-printed enclosure** — the "ON AIR" logo and bar diffuser. Not covered here.
 
 ### Software (required on your computer)
@@ -43,24 +45,25 @@ A complete, from-scratch walkthrough to build, flash, and run Y'all-ARM on an ES
 
 | Signal | ESP32-S3 GPIO | Connects to |
 |--------|---------------|-------------|
-| LED data in | GPIO 18 | WS2812B `DIN` (first pixel) |
-| LED 5V | 5V rail | WS2812B `5V` |
+| LED data in | GPIO 18 | WS2812B `DIN` (first pixel), through a 330–470Ω resistor |
+| LED 5V | 5V rail | WS2812B `5V` (add a 1000µF cap across 5V/GND if you have one) |
 | LED ground | GND | WS2812B `GND` |
-| I2S BCLK | GPIO 14 | MAX98357A `BCLK` |
-| I2S LRC (word select) | GPIO 15 | MAX98357A `LRC` |
-| I2S DIN (data out) | GPIO 16 | MAX98357A `DIN` |
-| Amp power | 5V | MAX98357A `VIN` |
+| I2S BCLK | GPIO 15 | MAX98357A `BCLK` |
+| I2S LRC (word select) | GPIO 16 | MAX98357A `LRC` |
+| I2S DIN (data out) | GPIO 17 | MAX98357A `DIN` |
+| Amp power | 5V | MAX98357A `VIN` (use 5V, not 3V3 — louder, less noise) |
 | Amp ground | GND | MAX98357A `GND` |
-| Speaker + | — | MAX98357A `+` |
+| Speaker + | — | MAX98357A `+` (terminal block; polarity doesn't matter for one speaker) |
 | Speaker − | — | MAX98357A `−` |
-| Dismiss button | GPIO 0 | Button → GND (onboard BOOT works) |
+| Dismiss button | GPIO 4 | Button → GND (firmware enables INPUT_PULLUP — no external resistor) |
 
 ### Power notes
 
+- **Golden rule:** power the LEDs **and** the amp from the `5V` pin on the DevKit, not the `3V3` pin. The 3.3V regulator on the DevKit is small and can't supply enough current for both peripherals — you'll see dim LEDs, distorted audio, and brownout reboots.
 - **USB from laptop:** fine for flashing and low-brightness testing. At `LED_BRIGHTNESS=128` with 16 LEDs you'll pull ~500–700 mA peak, which is at the edge of what some laptop USB ports supply reliably.
 - **External 5V supply:** feed it into the `5V` pin on the DevKit and tie grounds together. **Do not feed more than 5V into the `5V` pin** — it bypasses the USB regulator.
-- **LEDs get their power from the 5V rail**, not from the `3V3` pin. Do not tie LEDs to 3.3V — they'll look dim and flicker.
-- **Common ground is mandatory.** LED strip GND, amp GND, ESP32 GND, and PSU GND must all be connected.
+- **Common ground is mandatory.** LED strip GND, amp GND, ESP32 GND, and PSU GND must all be connected. The DevKitC-1 has a limited number of GND pins — splice grounds together or use a small breadboard rail as a ground bus.
+- **Two USB-C ports:** the DevKitC-1 has both a `UART` port (CP210x USB-serial bridge) and a native `USB` port. Use the `UART` port for flashing and `pio device monitor` — the firmware logs land there reliably.
 
 ### First-time wiring sanity check
 
@@ -193,7 +196,11 @@ Keep the monitor open — you'll want the device IP in a minute.
 
 ---
 
-## 8. First-Boot WiFi Setup
+## 8. WiFi Setup
+
+You have two options. Pick one.
+
+### Option A — Captive portal (default, no code edits)
 
 The first time the device boots (or after a factory reset), it creates its own WiFi network so you can tell it your home WiFi credentials.
 
@@ -209,6 +216,22 @@ The first time the device boots (or after a factory reset), it creates its own W
    [wifi] Connected to "YourNetwork" — IP 192.168.1.42
    [web] Dashboard available at http://192.168.1.42/
    ```
+
+WiFiManager persists the credentials across reboots — you only do this once (until you reflash and erase flash).
+
+### Option B — Compile-time credentials via `secrets.h`
+
+Useful when you reflash often during development and don't want to redo the captive-portal dance every time. Credentials live in a gitignored file so they never get pushed.
+
+```bash
+cp include/secrets.h.example include/secrets.h
+# edit include/secrets.h — set WIFI_SSID and WIFI_PASSWORD to your real values
+pio run --target upload
+```
+
+`include/config.h` pulls `secrets.h` in conditionally with `__has_include` — if the file is absent, the build still works and the device falls back to the captive portal. If credentials are present but don't connect within ~15 seconds (wrong password, network down, etc.), it also falls back to the portal.
+
+The `.gitignore` already excludes `include/secrets.h`, so `git status` will not show it. Don't commit anything that contains your real WiFi password.
 
 Write down that IP — that's your dashboard address.
 
@@ -239,7 +262,7 @@ Once it's flashed, the device is autonomous:
 - It auto-connects to saved WiFi on boot.
 - It polls `ryanhallyall.com/rhy/wis.json` every 60 seconds.
 - When Ryan's stream mode flips from `off` to live, the alert animation runs and the MP3 plays.
-- Press the dismiss button (GPIO 0 / BOOT) to silence an active alert.
+- Press the dismiss button (GPIO 4) to silence an active alert.
 
 **No laptop needed after flashing** — pull USB from your computer, plug it into a wall adapter, and it runs standalone.
 
@@ -249,7 +272,9 @@ Once it's flashed, the device is autonomous:
 
 ### Change WiFi networks
 
-Hold the BOOT button on power-up (or use WiFiManager's reset flow from the dashboard if exposed). The device will re-broadcast `YallARM-Setup` — go back to step 8.
+If you used the captive portal: trigger WiFiManager's reset flow from the dashboard (or `pio run --target erase` to wipe flash). The device will re-broadcast `YallARM-Setup` — go back to step 8.
+
+If you used `include/secrets.h`: edit the file with new credentials and reflash (`pio run --target upload`).
 
 ### Change settings
 

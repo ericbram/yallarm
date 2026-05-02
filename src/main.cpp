@@ -6,7 +6,7 @@
 #include "config.h"
 #include "wis.h"
 #include "leds.h"
-#include "audio.h"
+#include "app_audio.h"
 
 static WebServer  server(WEB_SERVER_PORT);
 static uint32_t   lastWisPollMs  = 0;

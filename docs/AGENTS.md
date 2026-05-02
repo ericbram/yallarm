@@ -42,8 +42,8 @@ yallarm/
 | Component         | Type                    | Pin(s)                                                  |
 |-------------------|-------------------------|---------------------------------------------------------|
 | LED Strip         | WS2812B                 | Data: GPIO 18                                           |
-| Audio DAC/Amp     | MAX98357A               | BCLK: 14, LRC: 15, DIN: 16                              |
-| Optional Button   | Tactile switch          | GPIO 0 (boot button or spare)                           |
+| Audio DAC/Amp     | MAX98357A               | BCLK: 15, LRC: 16, DIN: 17                              |
+| Optional Button   | Tactile switch          | GPIO 4 (avoids strapping pins 0/3/45/46)                |
 
 ### LED Segment Map
 
@@ -105,13 +105,13 @@ const float WIS_THRESHOLD_FLOOR = 10.0f;
 #define LED_BAR_END     15
 
 // Audio I2S
-#define I2S_BCLK_PIN    14
-#define I2S_LRC_PIN     15
-#define I2S_DIN_PIN     16
+#define I2S_BCLK_PIN    15
+#define I2S_LRC_PIN     16
+#define I2S_DIN_PIN     17
 #define AUDIO_FILE      "/yall_live.mp3"
 
 // Dismiss button
-#define DISMISS_PIN     0
+#define DISMISS_PIN     4
 
 // Colors (GRB order for WS2812B)
 #define COLOR_TEAL      CRGB(0, 128, 128)
@@ -303,7 +303,7 @@ Auto-refresh every 30 seconds via `<meta http-equiv="refresh" content="30">`.
 
 ## 10. Dismiss Button (Optional)
 
-- Uses `DISMISS_PIN` (GPIO 0 by default).
+- Uses `DISMISS_PIN` (GPIO 4 by default — wired between the pin and GND, INPUT_PULLUP enabled).
 - On press during `STATE_LIVE` or `STATE_ALERT`: stop audio, transition to `STATE_IDLE`.
 - Debounce with a 50ms `millis()` check in `loop()`.
 - Dismissing does **not** lock out re-alerting — if `is_live` is still true on the next poll, the device transitions back to `STATE_ALERT`.
