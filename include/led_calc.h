@@ -12,7 +12,7 @@ enum ColorTier {
 
 // Number of bar LEDs to light for a given wis_pct (0–LED_BAR_COUNT).
 inline int computeBarLeds(int wis_pct) {
-    int n = (int)roundf((float)wis_pct / 10.0f);
+    int n = (int)roundf((float)wis_pct / 5.0f);
     if (n < 0)             n = 0;
     if (n > LED_BAR_COUNT) n = LED_BAR_COUNT;
     return n;

@@ -73,9 +73,9 @@ static void tickClimb() {
     if (now - animLastMs < CLIMB_STEP_MS) return;
     animLastMs = now;
 
-    if (animStep < 30) {
-        int pass = animStep / 10;
-        int idx  = LED_BAR_START + (animStep % 10);
+    if (animStep < LED_BAR_COUNT * 3) {
+        int pass = animStep / LED_BAR_COUNT;
+        int idx  = LED_BAR_START + (animStep % LED_BAR_COUNT);
         leds[idx] = passColors[pass];
         animStep++;
     } else {

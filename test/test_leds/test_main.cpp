@@ -5,57 +5,62 @@ void setUp(void) {}
 void tearDown(void) {}
 
 // ---------------------------------------------------------------------------
-// computeBarLeds — wis_pct → number of LEDs lit (0–10)
+// computeBarLeds — wis_pct → number of LEDs lit (0–20, 1 LED per 5%)
 // ---------------------------------------------------------------------------
 
 void test_bar_leds_at_1pct(void) {
-    // round(0.1) = 0 — below the first rounding threshold
+    // round(0.2) = 0 — below the first rounding threshold
     TEST_ASSERT_EQUAL(0, computeBarLeds(1));
 }
 
+void test_bar_leds_at_3pct(void) {
+    // round(0.6) = 1
+    TEST_ASSERT_EQUAL(1, computeBarLeds(3));
+}
+
 void test_bar_leds_at_5pct(void) {
-    // round(0.5) = 1
+    // round(1.0) = 1
     TEST_ASSERT_EQUAL(1, computeBarLeds(5));
 }
 
-void test_bar_leds_at_10pct(void) {
-    // round(1.0) = 1
-    TEST_ASSERT_EQUAL(1, computeBarLeds(10));
-}
-
-void test_bar_leds_at_14pct(void) {
+void test_bar_leds_at_7pct(void) {
     // round(1.4) = 1
-    TEST_ASSERT_EQUAL(1, computeBarLeds(14));
+    TEST_ASSERT_EQUAL(1, computeBarLeds(7));
 }
 
-void test_bar_leds_at_15pct(void) {
-    // round(1.5) = 2
-    TEST_ASSERT_EQUAL(2, computeBarLeds(15));
+void test_bar_leds_at_8pct(void) {
+    // round(1.6) = 2
+    TEST_ASSERT_EQUAL(2, computeBarLeds(8));
+}
+
+void test_bar_leds_at_10pct(void) {
+    // round(2.0) = 2
+    TEST_ASSERT_EQUAL(2, computeBarLeds(10));
 }
 
 void test_bar_leds_at_50pct(void) {
-    // round(5.0) = 5 — exactly half
-    TEST_ASSERT_EQUAL(5, computeBarLeds(50));
+    // round(10.0) = 10 — exactly half of 20
+    TEST_ASSERT_EQUAL(10, computeBarLeds(50));
 }
 
 void test_bar_leds_at_90pct(void) {
-    // round(9.0) = 9
-    TEST_ASSERT_EQUAL(9, computeBarLeds(90));
+    // round(18.0) = 18
+    TEST_ASSERT_EQUAL(18, computeBarLeds(90));
 }
 
-void test_bar_leds_at_95pct(void) {
-    // round(9.5) = 10
-    TEST_ASSERT_EQUAL(10, computeBarLeds(95));
+void test_bar_leds_at_98pct(void) {
+    // round(19.6) = 20
+    TEST_ASSERT_EQUAL(20, computeBarLeds(98));
 }
 
 void test_bar_leds_at_100pct(void) {
-    // round(10.0) = 10 — all LEDs lit
-    TEST_ASSERT_EQUAL(10, computeBarLeds(100));
+    // round(20.0) = 20 — all LEDs lit
+    TEST_ASSERT_EQUAL(20, computeBarLeds(100));
 }
 
 void test_bar_leds_clamped_above_max(void) {
     // Over 100 should still return max LED count
-    TEST_ASSERT_EQUAL(10, computeBarLeds(150));
+    TEST_ASSERT_EQUAL(20, computeBarLeds(150));
 }
 
 void test_bar_leds_clamped_below_zero(void) {
@@ -118,26 +123,26 @@ void test_strobe_on_above_100(void) {
 // Combined — verify bar + color consistency at key thresholds
 // ---------------------------------------------------------------------------
 
-void test_9pct_is_1_led_blue(void) {
-    // Today's typical WIS (14.49 / 147.16 ≈ 9%)
+void test_9pct_is_2_leds_blue(void) {
+    // Today's typical WIS (14.49 / 147.16 ≈ 9%) → round(1.8) = 2
     int leds = computeBarLeds(9);
     ColorTier color = computeColorTier(9);
-    TEST_ASSERT_EQUAL(1, leds);
+    TEST_ASSERT_EQUAL(2, leds);
     TEST_ASSERT_EQUAL(TIER_BLUE, color);
 }
 
-void test_50pct_is_5_leds_teal(void) {
+void test_50pct_is_10_leds_teal(void) {
     int leds = computeBarLeds(50);
     ColorTier color = computeColorTier(50);
-    TEST_ASSERT_EQUAL(5, leds);
+    TEST_ASSERT_EQUAL(10, leds);
     TEST_ASSERT_EQUAL(TIER_TEAL, color);
 }
 
-void test_100pct_is_10_leds_magenta_with_strobe(void) {
+void test_100pct_is_20_leds_magenta_with_strobe(void) {
     int leds = computeBarLeds(100);
     ColorTier color = computeColorTier(100);
     bool strobe = computeStrobe(100);
-    TEST_ASSERT_EQUAL(10, leds);
+    TEST_ASSERT_EQUAL(20, leds);
     TEST_ASSERT_EQUAL(TIER_MAGENTA, color);
     TEST_ASSERT_TRUE(strobe);
 }
@@ -150,13 +155,14 @@ int main(void) {
     UNITY_BEGIN();
 
     RUN_TEST(test_bar_leds_at_1pct);
+    RUN_TEST(test_bar_leds_at_3pct);
     RUN_TEST(test_bar_leds_at_5pct);
+    RUN_TEST(test_bar_leds_at_7pct);
+    RUN_TEST(test_bar_leds_at_8pct);
     RUN_TEST(test_bar_leds_at_10pct);
-    RUN_TEST(test_bar_leds_at_14pct);
-    RUN_TEST(test_bar_leds_at_15pct);
     RUN_TEST(test_bar_leds_at_50pct);
     RUN_TEST(test_bar_leds_at_90pct);
-    RUN_TEST(test_bar_leds_at_95pct);
+    RUN_TEST(test_bar_leds_at_98pct);
     RUN_TEST(test_bar_leds_at_100pct);
     RUN_TEST(test_bar_leds_clamped_above_max);
     RUN_TEST(test_bar_leds_clamped_below_zero);
@@ -173,9 +179,9 @@ int main(void) {
     RUN_TEST(test_strobe_on_at_100);
     RUN_TEST(test_strobe_on_above_100);
 
-    RUN_TEST(test_9pct_is_1_led_blue);
-    RUN_TEST(test_50pct_is_5_leds_teal);
-    RUN_TEST(test_100pct_is_10_leds_magenta_with_strobe);
+    RUN_TEST(test_9pct_is_2_leds_blue);
+    RUN_TEST(test_50pct_is_10_leds_teal);
+    RUN_TEST(test_100pct_is_20_leds_magenta_with_strobe);
 
     return UNITY_END();
 }

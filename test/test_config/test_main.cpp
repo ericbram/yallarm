@@ -13,10 +13,11 @@ void test_led_bar_count_matches_indices(void) {
     TEST_ASSERT_EQUAL(LED_BAR_COUNT, LED_BAR_END - LED_BAR_START + 1);
 }
 
-void test_led_total_count_matches_segments(void) {
-    // Logo segment + bar segment must account for all LEDs
+void test_led_total_count_covers_segments(void) {
+    // Strip must be long enough to contain both logo + bar segments.
+    // Extra physical LEDs past the bar are addressed but held black.
     int logo_count = LED_LOGO_END - LED_LOGO_START + 1;
-    TEST_ASSERT_EQUAL(NUM_LEDS, logo_count + LED_BAR_COUNT);
+    TEST_ASSERT_GREATER_OR_EQUAL(logo_count + LED_BAR_COUNT, NUM_LEDS);
 }
 
 void test_led_segments_are_contiguous(void) {
@@ -116,7 +117,7 @@ int main(void) {
     UNITY_BEGIN();
 
     RUN_TEST(test_led_bar_count_matches_indices);
-    RUN_TEST(test_led_total_count_matches_segments);
+    RUN_TEST(test_led_total_count_covers_segments);
     RUN_TEST(test_led_segments_are_contiguous);
     RUN_TEST(test_led_bar_end_within_strip);
     RUN_TEST(test_led_logo_start_is_zero);

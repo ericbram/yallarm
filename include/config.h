@@ -27,12 +27,12 @@
 // LED HARDWARE
 // =============================================================================
 #define LED_DATA_PIN        18
-#define NUM_LEDS            16
-#define LED_BAR_COUNT       10
+#define NUM_LEDS            120             // physical strip length — bump if your strip is longer
+#define LED_BAR_COUNT       20
 #define LED_LOGO_START      0
-#define LED_LOGO_END        5
-#define LED_BAR_START       6
-#define LED_BAR_END         15
+#define LED_LOGO_END        14
+#define LED_BAR_START       15
+#define LED_BAR_END         34
 
 // =============================================================================
 // LED VISUAL SETTINGS
