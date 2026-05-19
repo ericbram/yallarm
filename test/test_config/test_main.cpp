@@ -34,42 +34,12 @@ void test_led_logo_start_is_zero(void) {
 }
 
 // ---------------------------------------------------------------------------
-// Color tier ordering — tier boundaries must be in ascending order
-// ---------------------------------------------------------------------------
-
-void test_color_tier_low_before_mid(void) {
-    TEST_ASSERT_LESS_THAN(COLOR_TIER_MID, COLOR_TIER_LOW);
-}
-
-void test_color_tier_low_in_valid_range(void) {
-    TEST_ASSERT_GREATER_THAN(0, COLOR_TIER_LOW);
-    TEST_ASSERT_LESS_THAN(100, COLOR_TIER_LOW);
-}
-
-void test_color_tier_mid_in_valid_range(void) {
-    TEST_ASSERT_GREATER_THAN(0, COLOR_TIER_MID);
-    TEST_ASSERT_LESS_THAN(100, COLOR_TIER_MID);
-}
-
-// ---------------------------------------------------------------------------
 // LED visual settings — values must be within hardware-enforced ranges
 // ---------------------------------------------------------------------------
 
 void test_led_brightness_in_range(void) {
     TEST_ASSERT_GREATER_THAN(0, LED_BRIGHTNESS);
     TEST_ASSERT_LESS_OR_EQUAL(255, LED_BRIGHTNESS);
-}
-
-void test_breath_min_less_than_max(void) {
-    TEST_ASSERT_LESS_THAN(BREATH_MAX, BREATH_MIN);
-}
-
-void test_breath_min_non_negative(void) {
-    TEST_ASSERT_GREATER_OR_EQUAL(0, BREATH_MIN);
-}
-
-void test_breath_max_in_brightness_range(void) {
-    TEST_ASSERT_LESS_OR_EQUAL(LED_BRIGHTNESS, BREATH_MAX);
 }
 
 // ---------------------------------------------------------------------------
@@ -122,14 +92,7 @@ int main(void) {
     RUN_TEST(test_led_bar_end_within_strip);
     RUN_TEST(test_led_logo_start_is_zero);
 
-    RUN_TEST(test_color_tier_low_before_mid);
-    RUN_TEST(test_color_tier_low_in_valid_range);
-    RUN_TEST(test_color_tier_mid_in_valid_range);
-
     RUN_TEST(test_led_brightness_in_range);
-    RUN_TEST(test_breath_min_less_than_max);
-    RUN_TEST(test_breath_min_non_negative);
-    RUN_TEST(test_breath_max_in_brightness_range);
 
     RUN_TEST(test_audio_volume_in_range);
 

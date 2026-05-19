@@ -30,24 +30,16 @@
 #define NUM_LEDS            120             // physical strip length — bump if your strip is longer
 #define LED_BAR_COUNT       20
 #define LED_LOGO_START      0
-#define LED_LOGO_END        14
-#define LED_BAR_START       15
-#define LED_BAR_END         34
+#define LED_LOGO_END        19
+#define LED_BAR_START       20
+#define LED_BAR_END         39
 
 // =============================================================================
 // LED VISUAL SETTINGS
 // =============================================================================
 #define LED_BRIGHTNESS          128     // global brightness 0–255
-#define BREATH_MIN              5       // dimmest point of idle breath
-#define BREATH_MAX              40      // brightest point of idle breath
-#define BREATH_PERIOD_MS        3000    // duration of one full breath cycle
 #define CLIMB_STEP_MS           80      // ms between each LED step in alert animation
 #define STROBE_INTERVAL_MS      250     // ms between strobe flashes when score >= threshold
-
-// Progress bar color tiers (by wis_pct value)
-#define COLOR_TIER_LOW          40      // 1–40%  → Blue
-#define COLOR_TIER_MID          70      // 41–70% → Teal
-                                        // 71–100% → Magenta
 
 // =============================================================================
 // AUDIO — I2S / MAX98357A

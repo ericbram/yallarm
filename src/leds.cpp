@@ -18,18 +18,16 @@ static bool    strobeOn      = false;
 // Helpers
 // ---------------------------------------------------------------------------
 
-static CRGB crgbForTier(ColorTier tier) {
-    switch (tier) {
-        case TIER_BLUE:    return CRGB(0,   0,   200);
-        case TIER_TEAL:    return CRGB(0,   128, 128);
-        case TIER_MAGENTA: return CRGB(200, 0,   200);
-        default:           return CRGB::Black;
+static void fillLogo(CRGB color) {
+    for (int i = LED_LOGO_START; i <= LED_LOGO_END; i++) {
+        leds[i] = color;
     }
 }
 
 static void fillBar(int pct) {
     int barLeds = computeBarLeds(pct);
-    CRGB col = crgbForTier(computeColorTier(pct));
+    RgbColor c = colorForPct(pct);
+    CRGB col(c.r, c.g, c.b);
     for (int i = LED_BAR_START; i <= LED_BAR_END; i++) {
         leds[i] = ((i - LED_BAR_START) < barLeds) ? col : CRGB::Black;
     }
@@ -43,30 +41,18 @@ static void applyStrobe(int pct) {
         strobeLastMs = now;
         strobeOn = !strobeOn;
     }
-    CRGB strobeColor = strobeOn ? CRGB(200, 0, 200) : CRGB::Black;
+    CRGB strobeColor = strobeOn ? CRGB(200, 0, 0) : CRGB::Black;
     leds[LED_BAR_END]     = strobeColor;
     leds[LED_BAR_END - 1] = strobeColor;
 }
 
-// ---------------------------------------------------------------------------
-// Per-state tick functions
-// ---------------------------------------------------------------------------
-
-static void tickBreath() {
-    float t = (float)(millis() % BREATH_PERIOD_MS) / (float)BREATH_PERIOD_MS;
-    float s = (sinf(t * TWO_PI) + 1.0f) / 2.0f;
-    uint8_t bright = BREATH_MIN + (uint8_t)(s * (BREATH_MAX - BREATH_MIN));
-    for (int i = LED_LOGO_START; i <= LED_LOGO_END; i++) {
-        leds[i] = CRGB(0, bright, bright);
-    }
-}
-
 static void tickClimb() {
-    // 3 passes × 10 LEDs = 30 steps: Blue pass, then Teal, then Magenta
+    // 3 passes × LED_BAR_COUNT LEDs: green wave, then yellow, then red —
+    // mirrors the green→red progression of the steady-state bar.
     static const CRGB passColors[3] = {
-        CRGB(0,   0,   200),
-        CRGB(0,   128, 128),
-        CRGB(200, 0,   200),
+        CRGB(0,   200, 0),
+        CRGB(200, 200, 0),
+        CRGB(200, 0,   0),
     };
 
     uint32_t now = millis();
@@ -111,35 +97,25 @@ void ledsTick() {
     switch (ledState) {
 
         case STATE_IDLE:
-            tickBreath();
+            // Not live → logo fully off
+            fillLogo(CRGB::Black);
             fillBar(currentWisPct);
             applyStrobe(currentWisPct);
             break;
 
         case STATE_ALERT:
-            // Logo pulses in sync with the climb step timer
-            {
-                bool logoOn = ((millis() / CLIMB_STEP_MS) % 2 == 0);
-                CRGB logoColor = logoOn ? CRGB(0, 128, 128) : CRGB::Black;
-                for (int i = LED_LOGO_START; i <= LED_LOGO_END; i++) {
-                    leds[i] = logoColor;
-                }
-            }
+            fillLogo(CRGB::White);
             tickClimb();    // advances one LED step every CLIMB_STEP_MS
             break;
 
         case STATE_LIVE:
-            for (int i = LED_LOGO_START; i <= LED_LOGO_END; i++) {
-                leds[i] = CRGB(0, 128, 128);
-            }
+            fillLogo(CRGB::White);
             fillBar(currentWisPct);
             applyStrobe(currentWisPct);
             break;
 
         case STATE_OVERRIDE:
-            for (int i = LED_LOGO_START; i <= LED_LOGO_END; i++) {
-                leds[i] = CRGB(0, 128, 128);
-            }
+            fillLogo(CRGB::White);
             fillBar(overridePct);
             applyStrobe(overridePct);
             break;
