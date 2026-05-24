@@ -105,6 +105,32 @@ Requirements:
 - Bitrate: 128kbps or lower
 - Channels: mono or stereo
 
+#### Sample Clips
+
+The [`samples/`](samples/) directory holds example MP3s you can drop into `data/` to try things out. For example, to use the included `weather.mp3` as your alert sound:
+
+```bash
+cp samples/weather.mp3 data/yall_live.mp3
+pio run --target uploadfs
+```
+
+#### Audio Self-Test
+
+The dashboard has an **Audio Test** section that streams any MP3 URL through the speaker so you can verify the I2S amp and wiring without flashing a filesystem. Paste a URL, click **Play Audio**, and you should hear it within a second or two. Leave the URL field blank to play the file currently at `/yall_live.mp3` in LittleFS.
+
+The same can be triggered headlessly:
+
+```bash
+# Stream a remote MP3
+curl -X POST http://<device-ip>/test-audio -d "url=https://example.com/clip.mp3"
+
+# Play the local alert file
+curl -X POST http://<device-ip>/test-audio
+
+# Stop playback
+curl -X POST http://<device-ip>/test-audio-stop
+```
+
 ---
 
 ## Configuration
@@ -197,6 +223,8 @@ yallarm/
 │   └── app_audio.cpp       # I2S audio via ESP32-audioI2S
 ├── data/
 │   └── yall_live.mp3  # Alert audio (add your own — not in repo)
+├── samples/
+│   └── weather.mp3    # Example MP3 — copy into data/ to use
 ├── platformio.ini     # Build config and library dependencies
 └── docs/
     ├── AGENTS.md      # Full implementation spec

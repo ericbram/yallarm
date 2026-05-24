@@ -14,6 +14,10 @@ void audioPlayAlert() {
     audio.connecttoFS(LittleFS, AUDIO_FILE);
 }
 
+void audioPlayUrl(const char* url) {
+    audio.connecttohost(url);
+}
+
 void audioStop() {
     audio.stopSong();
 }

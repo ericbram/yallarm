@@ -5,14 +5,19 @@
 
 static CRGB leds[NUM_LEDS];
 
-LedState ledState    = STATE_IDLE;
-int      overridePct = 50;
+LedState ledState = STATE_IDLE;
 
-static int     currentWisPct = 1;
-static int     animStep      = 0;
-static uint32_t animLastMs   = 0;
-static uint32_t strobeLastMs = 0;
-static bool    strobeOn      = false;
+static int      currentWisPct = 1;
+static int      animStep      = 0;
+static uint32_t animLastMs    = 0;
+static uint32_t strobeLastMs  = 0;
+static bool     strobeOn      = false;
+
+// Independent overrides — see leds.h
+static bool barOverrideActive  = false;
+static int  barOverridePct     = 50;
+static bool logoOverrideActive = false;
+static bool logoOverrideOn     = true;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -94,32 +99,91 @@ void ledsSetWisPct(int pct) {
 }
 
 void ledsTick() {
-    switch (ledState) {
+    // Logo: explicit override wins, otherwise state-driven
+    if (logoOverrideActive) {
+        fillLogo(logoOverrideOn ? CRGB::White : CRGB::Black);
+    } else {
+        fillLogo(ledState == STATE_IDLE ? CRGB::Black : CRGB::White);
+    }
 
-        case STATE_IDLE:
-            // Not live → logo fully off
-            fillLogo(CRGB::Black);
-            fillBar(currentWisPct);
-            applyStrobe(currentWisPct);
-            break;
-
-        case STATE_ALERT:
-            fillLogo(CRGB::White);
-            tickClimb();    // advances one LED step every CLIMB_STEP_MS
-            break;
-
-        case STATE_LIVE:
-            fillLogo(CRGB::White);
-            fillBar(currentWisPct);
-            applyStrobe(currentWisPct);
-            break;
-
-        case STATE_OVERRIDE:
-            fillLogo(CRGB::White);
-            fillBar(overridePct);
-            applyStrobe(overridePct);
-            break;
+    // Bar: override wins; otherwise climb during ALERT, else live %
+    if (barOverrideActive) {
+        fillBar(barOverridePct);
+        applyStrobe(barOverridePct);
+    } else if (ledState == STATE_ALERT) {
+        tickClimb();   // advances animStep, transitions to STATE_LIVE when done
+    } else {
+        fillBar(currentWisPct);
+        applyStrobe(currentWisPct);
     }
 
     FastLED.show();
 }
+
+// ---------------------------------------------------------------------------
+// Overrides
+// ---------------------------------------------------------------------------
+
+void ledsSetBarOverride(int pct) {
+    barOverridePct    = constrain(pct, 1, 100);
+    barOverrideActive = true;
+}
+void ledsClearBarOverride()  { barOverrideActive = false; }
+bool ledsHasBarOverride()    { return barOverrideActive; }
+int  ledsBarOverridePct()    { return barOverridePct; }
+
+void ledsSetLogoOverride(bool on) {
+    logoOverrideOn     = on;
+    logoOverrideActive = true;
+}
+void ledsClearLogoOverride() { logoOverrideActive = false; }
+bool ledsHasLogoOverride()   { return logoOverrideActive; }
+bool ledsLogoOverrideOn()    { return logoOverrideOn; }
+
+void ledsClearAllOverrides() {
+    barOverrideActive  = false;
+    logoOverrideActive = false;
+}
+bool ledsAnyOverride() { return barOverrideActive || logoOverrideActive; }
+
+#ifdef LED_DIAG
+void ledsDiagLoop() {
+    // 6 bands of 20 LEDs each. If your strip dies at the cut, you'll see only
+    // the red band — the second section starts at LED 20 (green band).
+    static const CRGB bandColors[6] = {
+        CRGB(80, 0,  0 ),   //   0– 19  red
+        CRGB(0,  80, 0 ),   //  20– 39  green
+        CRGB(0,  0,  80),   //  40– 59  blue
+        CRGB(80, 80, 80),   //  60– 79  white
+        CRGB(80, 80, 0 ),   //  80– 99  yellow
+        CRGB(80, 0,  80),   // 100–119  magenta
+    };
+
+    // Dim for marginal-power scenarios — 80/255 × brightness keeps current low.
+    FastLED.setBrightness(64);
+
+    Serial.println("[diag] LED_DIAG active — running hardware test");
+    Serial.println("[diag] bands:   0-19 red | 20-39 grn | 40-59 blu");
+    Serial.println("[diag]         60-79 wht | 80-99 yel | 100-119 mag");
+
+    while (true) {
+        // Phase 1: hold color bands for 8s so you can inspect/photograph
+        Serial.println("[diag] phase 1: color bands (8s)");
+        for (int i = 0; i < NUM_LEDS; i++) {
+            leds[i] = bandColors[i / 20];
+        }
+        FastLED.show();
+        delay(8000);
+
+        // Phase 2: march a single white pixel down the whole strip
+        Serial.println("[diag] phase 2: marching pixel");
+        for (int i = 0; i < NUM_LEDS; i++) {
+            FastLED.clear();
+            leds[i] = CRGB(120, 120, 120);
+            FastLED.show();
+            Serial.printf("[diag] pixel %d\n", i);
+            delay(80);
+        }
+    }
+}
+#endif

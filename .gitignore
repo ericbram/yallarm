@@ -4,3 +4,6 @@
 
 # Local WiFi / API credentials — never commit
 include/secrets.h
+
+# Auto-populated by scripts/prepare_data.py from samples/weather.mp3
+data/yall_live.mp3
