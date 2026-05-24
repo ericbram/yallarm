@@ -3,7 +3,8 @@
 #include "led_calc.h"
 #include <FastLED.h>
 
-static CRGB leds[NUM_LEDS];
+static CRGB logoLeds[LED_LOGO_COUNT];
+static CRGB barLeds[LED_BAR_COUNT];
 
 LedState ledState = STATE_IDLE;
 
@@ -24,17 +25,17 @@ static bool logoOverrideOn     = true;
 // ---------------------------------------------------------------------------
 
 static void fillLogo(CRGB color) {
-    for (int i = LED_LOGO_START; i <= LED_LOGO_END; i++) {
-        leds[i] = color;
+    for (int i = 0; i < LED_LOGO_COUNT; i++) {
+        logoLeds[i] = color;
     }
 }
 
 static void fillBar(int pct) {
-    int barLeds = computeBarLeds(pct);
+    int barLitCount = computeBarLeds(pct);
     RgbColor c = colorForPct(pct);
     CRGB col(c.r, c.g, c.b);
-    for (int i = LED_BAR_START; i <= LED_BAR_END; i++) {
-        leds[i] = ((i - LED_BAR_START) < barLeds) ? col : CRGB::Black;
+    for (int i = 0; i < LED_BAR_COUNT; i++) {
+        barLeds[i] = (i < barLitCount) ? col : CRGB::Black;
     }
 }
 
@@ -47,8 +48,8 @@ static void applyStrobe(int pct) {
         strobeOn = !strobeOn;
     }
     CRGB strobeColor = strobeOn ? CRGB(200, 0, 0) : CRGB::Black;
-    leds[LED_BAR_END]     = strobeColor;
-    leds[LED_BAR_END - 1] = strobeColor;
+    barLeds[LED_BAR_COUNT - 1] = strobeColor;
+    barLeds[LED_BAR_COUNT - 2] = strobeColor;
 }
 
 static void tickClimb() {
@@ -66,8 +67,8 @@ static void tickClimb() {
 
     if (animStep < LED_BAR_COUNT * 3) {
         int pass = animStep / LED_BAR_COUNT;
-        int idx  = LED_BAR_START + (animStep % LED_BAR_COUNT);
-        leds[idx] = passColors[pass];
+        int idx  = animStep % LED_BAR_COUNT;
+        barLeds[idx] = passColors[pass];
         animStep++;
     } else {
         // Animation done — settle into LIVE state
@@ -80,7 +81,8 @@ static void tickClimb() {
 // ---------------------------------------------------------------------------
 
 void ledsInit() {
-    FastLED.addLeds<WS2812B, LED_DATA_PIN, GRB>(leds, NUM_LEDS);
+    FastLED.addLeds<WS2812B, LED_LOGO_PIN, GRB>(logoLeds, LED_LOGO_COUNT);
+    FastLED.addLeds<WS2812B, LED_BAR_PIN,  GRB>(barLeds,  LED_BAR_COUNT);
     FastLED.setBrightness(LED_BRIGHTNESS);
     FastLED.clear(true);
 }
@@ -148,40 +150,37 @@ bool ledsAnyOverride() { return barOverrideActive || logoOverrideActive; }
 
 #ifdef LED_DIAG
 void ledsDiagLoop() {
-    // 6 bands of 20 LEDs each. If your strip dies at the cut, you'll see only
-    // the red band — the second section starts at LED 20 (green band).
-    static const CRGB bandColors[6] = {
-        CRGB(80, 0,  0 ),   //   0– 19  red
-        CRGB(0,  80, 0 ),   //  20– 39  green
-        CRGB(0,  0,  80),   //  40– 59  blue
-        CRGB(80, 80, 80),   //  60– 79  white
-        CRGB(80, 80, 0 ),   //  80– 99  yellow
-        CRGB(80, 0,  80),   // 100–119  magenta
-    };
-
-    // Dim for marginal-power scenarios — 80/255 × brightness keeps current low.
     FastLED.setBrightness(64);
 
-    Serial.println("[diag] LED_DIAG active — running hardware test");
-    Serial.println("[diag] bands:   0-19 red | 20-39 grn | 40-59 blu");
-    Serial.println("[diag]         60-79 wht | 80-99 yel | 100-119 mag");
+    Serial.println("[diag] LED_DIAG active — hardware test on two strips");
+    Serial.printf("[diag] logo: pin %d, %d LEDs   bar: pin %d, %d LEDs\n",
+                  LED_LOGO_PIN, LED_LOGO_COUNT, LED_BAR_PIN, LED_BAR_COUNT);
 
     while (true) {
-        // Phase 1: hold color bands for 8s so you can inspect/photograph
-        Serial.println("[diag] phase 1: color bands (8s)");
-        for (int i = 0; i < NUM_LEDS; i++) {
-            leds[i] = bandColors[i / 20];
-        }
+        // Phase 1: logo red, bar green — confirms both strips are wired
+        Serial.println("[diag] phase 1: logo=red, bar=green (8s)");
+        for (int i = 0; i < LED_LOGO_COUNT; i++) logoLeds[i] = CRGB(80, 0,  0);
+        for (int i = 0; i < LED_BAR_COUNT;  i++) barLeds[i]  = CRGB(0,  80, 0);
         FastLED.show();
         delay(8000);
 
-        // Phase 2: march a single white pixel down the whole strip
-        Serial.println("[diag] phase 2: marching pixel");
-        for (int i = 0; i < NUM_LEDS; i++) {
+        // Phase 2: march a white pixel through the logo strip
+        Serial.println("[diag] phase 2a: marching pixel through LOGO");
+        for (int i = 0; i < LED_LOGO_COUNT; i++) {
             FastLED.clear();
-            leds[i] = CRGB(120, 120, 120);
+            logoLeds[i] = CRGB(120, 120, 120);
             FastLED.show();
-            Serial.printf("[diag] pixel %d\n", i);
+            Serial.printf("[diag] logo pixel %d\n", i);
+            delay(80);
+        }
+
+        // Phase 2: march a white pixel through the bar strip
+        Serial.println("[diag] phase 2b: marching pixel through BAR");
+        for (int i = 0; i < LED_BAR_COUNT; i++) {
+            FastLED.clear();
+            barLeds[i] = CRGB(120, 120, 120);
+            FastLED.show();
+            Serial.printf("[diag] bar pixel %d\n", i);
             delay(80);
         }
     }

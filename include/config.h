@@ -24,15 +24,15 @@
                                                 // (avoids false "maxed out" on slow weather days)
 
 // =============================================================================
-// LED HARDWARE
+// LED HARDWARE — two physically separate WS2812B strips
 // =============================================================================
-#define LED_DATA_PIN        18
-#define NUM_LEDS            120             // physical strip length — bump if your strip is longer
+// Each strip is its own daisy-chain wired to its own GPIO. Grounds for both
+// strips must be tied to ESP32 GND for the data signal to latch reliably.
+#define LED_LOGO_PIN        18
+#define LED_LOGO_COUNT      20
+
+#define LED_BAR_PIN         14
 #define LED_BAR_COUNT       20
-#define LED_LOGO_START      0
-#define LED_LOGO_END        19
-#define LED_BAR_START       20
-#define LED_BAR_END         39
 
 // =============================================================================
 // LED VISUAL SETTINGS
