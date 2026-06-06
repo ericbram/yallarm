@@ -5,32 +5,30 @@ void setUp(void) {}
 void tearDown(void) {}
 
 // ---------------------------------------------------------------------------
-// LED geometry — catches edits to one constant without updating the others
+// LED geometry — two physically separate strips, each on its own GPIO
 // ---------------------------------------------------------------------------
 
-void test_led_bar_count_matches_indices(void) {
-    // LED_BAR_END - LED_BAR_START + 1 must equal LED_BAR_COUNT
-    TEST_ASSERT_EQUAL(LED_BAR_COUNT, LED_BAR_END - LED_BAR_START + 1);
+void test_led_logo_count_positive(void) {
+    TEST_ASSERT_GREATER_THAN(0, LED_LOGO_COUNT);
 }
 
-void test_led_total_count_covers_segments(void) {
-    // Strip must be long enough to contain both logo + bar segments.
-    // Extra physical LEDs past the bar are addressed but held black.
-    int logo_count = LED_LOGO_END - LED_LOGO_START + 1;
-    TEST_ASSERT_GREATER_OR_EQUAL(logo_count + LED_BAR_COUNT, NUM_LEDS);
+void test_led_bar_count_positive(void) {
+    TEST_ASSERT_GREATER_THAN(0, LED_BAR_COUNT);
 }
 
-void test_led_segments_are_contiguous(void) {
-    // Bar starts immediately after logo — no gap, no overlap
-    TEST_ASSERT_EQUAL(LED_LOGO_END + 1, LED_BAR_START);
+void test_led_strips_use_distinct_pins(void) {
+    // Each strip is its own daisy-chain — they can't share a data pin
+    TEST_ASSERT_NOT_EQUAL(LED_LOGO_PIN, LED_BAR_PIN);
 }
 
-void test_led_bar_end_within_strip(void) {
-    TEST_ASSERT_LESS_THAN(NUM_LEDS, LED_BAR_END);
-}
-
-void test_led_logo_start_is_zero(void) {
-    TEST_ASSERT_EQUAL(0, LED_LOGO_START);
+void test_led_pins_avoid_strapping_pins(void) {
+    // ESP32-S3 strapping pins (0, 3, 45, 46) affect boot mode — driving a
+    // WS2812B data line from one can wedge the board on power cycle.
+    const int strapping[] = {0, 3, 45, 46};
+    for (unsigned i = 0; i < sizeof(strapping) / sizeof(strapping[0]); i++) {
+        TEST_ASSERT_NOT_EQUAL(strapping[i], LED_LOGO_PIN);
+        TEST_ASSERT_NOT_EQUAL(strapping[i], LED_BAR_PIN);
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -86,11 +84,10 @@ void test_dismiss_debounce_positive(void) {
 int main(void) {
     UNITY_BEGIN();
 
-    RUN_TEST(test_led_bar_count_matches_indices);
-    RUN_TEST(test_led_total_count_covers_segments);
-    RUN_TEST(test_led_segments_are_contiguous);
-    RUN_TEST(test_led_bar_end_within_strip);
-    RUN_TEST(test_led_logo_start_is_zero);
+    RUN_TEST(test_led_logo_count_positive);
+    RUN_TEST(test_led_bar_count_positive);
+    RUN_TEST(test_led_strips_use_distinct_pins);
+    RUN_TEST(test_led_pins_avoid_strapping_pins);
 
     RUN_TEST(test_led_brightness_in_range);
 

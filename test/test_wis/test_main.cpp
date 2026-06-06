@@ -81,6 +81,11 @@ void test_is_live_mode_off_is_false(void) {
     TEST_ASSERT_FALSE(computeIsLive("off"));
 }
 
+void test_is_live_mode_standby_is_false(void) {
+    // "standby" = stream scheduled today but not started — observed 2026-06-06
+    TEST_ASSERT_FALSE(computeIsLive("standby"));
+}
+
 void test_is_live_mode_live_is_true(void) {
     TEST_ASSERT_TRUE(computeIsLive("live"));
 }
@@ -127,6 +132,7 @@ int main(void) {
     RUN_TEST(test_wis_pct_threshold_just_above_floor);
     RUN_TEST(test_wis_pct_zero_threshold_returns_1);
     RUN_TEST(test_is_live_mode_off_is_false);
+    RUN_TEST(test_is_live_mode_standby_is_false);
     RUN_TEST(test_is_live_mode_live_is_true);
     RUN_TEST(test_is_live_mode_on_is_true);
     RUN_TEST(test_is_live_mode_active_is_true);

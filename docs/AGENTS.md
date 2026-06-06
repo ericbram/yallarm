@@ -140,7 +140,7 @@ GET https://ryanhallyall.com/rhy/wis.json
 | `wis.weather_intensity_score` | float | Current WIS score |
 | `wis.weather_intensity_score_30m_from_now` | float | 30-minute forecast score |
 | `wis.todays_stream_info.weather_intensity_score_threshold` | float | Score at which Ryan streams today |
-| `wis.todays_stream_info.mode` | string | Stream state — `"off"` = not live; any other value = live |
+| `wis.todays_stream_info.mode` | string | Stream state — `"off"` and `"standby"` = not live; any other value = live |
 
 ### Returned Struct
 
@@ -151,7 +151,7 @@ struct WisData {
     float   threshold;       // wis.todays_stream_info.weather_intensity_score_threshold
     String  mode;            // wis.todays_stream_info.mode
     int     wis_pct;         // computed: see below — range 1–100
-    bool    is_live;         // computed: mode != "off"
+    bool    is_live;         // computed: mode not "off"/"standby"
     bool    valid;           // false if HTTP or parse error
 };
 ```
@@ -178,10 +178,10 @@ Examples at today's threshold of 147.16:
 ### Live Detection
 
 ```cpp
-wis.is_live = (wis.mode != "off");
+wis.is_live = (wis.mode != "off" && wis.mode != "standby");
 ```
 
-`"off"` is the only observed non-live value. Any other mode value (e.g., `"live"`, `"active"`) is treated as live. Log the raw `mode` string to Serial on every poll so unknown values are visible during testing.
+Observed non-live values: `"off"` (no stream today) and `"standby"` (stream scheduled today but not yet started — observed 2026-06-06). Any other mode value (e.g., `"live"`, `"active"`) is treated as live, so an unrecognised live-mode string still triggers the alert. Log the raw `mode` string to Serial on every poll so unknown values are visible during testing.
 
 ### HTTP Parsing Notes
 
