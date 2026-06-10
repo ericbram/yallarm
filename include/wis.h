@@ -5,9 +5,9 @@ struct WisData {
     float   current_score;     // wis.weather_intensity_score
     float   score_30m;         // wis.weather_intensity_score_30m_from_now
     float   threshold;         // wis.todays_stream_info.weather_intensity_score_threshold
-    String  mode;              // wis.todays_stream_info.mode ("off" = not live)
+    String  mode;              // wis.todays_stream_info.mode ("live" = on air)
     int     wis_pct;           // computed: (current_score / threshold) * 100, clamped 1–100
-    bool    is_live;           // computed: mode != "off"
+    bool    is_live;           // computed: mode == "live"
     bool    valid;             // false if the last poll failed (stale data retained)
 };
 

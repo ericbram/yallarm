@@ -14,10 +14,10 @@ inline int computeWisPct(float score, float threshold, float threshold_floor) {
 }
 
 // Returns true when the stream is considered live.
-// Known non-live values: "off" (no stream today) and "standby" (stream
-// scheduled but not started). Any other mode is treated as live so an
-// unrecognised live-mode string still triggers the alert (fail open).
+// The live value is "live" — observed 2026-06-10 while the stream was
+// actually on air. Anything else ("off", "standby", unknown) is not live,
+// so a new unrecognised mode string no longer false-triggers the alert.
 inline bool computeIsLive(const char* mode) {
     if (mode == nullptr) return false;
-    return strcmp(mode, "off") != 0 && strcmp(mode, "standby") != 0;
+    return strcmp(mode, "live") == 0;
 }

@@ -87,20 +87,21 @@ void test_is_live_mode_standby_is_false(void) {
 }
 
 void test_is_live_mode_live_is_true(void) {
+    // "live" = stream in progress — observed 2026-06-10 while actually on air
     TEST_ASSERT_TRUE(computeIsLive("live"));
 }
 
-void test_is_live_mode_on_is_true(void) {
-    TEST_ASSERT_TRUE(computeIsLive("on"));
+void test_is_live_mode_on_is_false(void) {
+    // Unrecognised modes no longer trigger the alert (fail closed)
+    TEST_ASSERT_FALSE(computeIsLive("on"));
 }
 
-void test_is_live_mode_active_is_true(void) {
-    TEST_ASSERT_TRUE(computeIsLive("active"));
+void test_is_live_mode_active_is_false(void) {
+    TEST_ASSERT_FALSE(computeIsLive("active"));
 }
 
-void test_is_live_empty_string_is_true(void) {
-    // An empty mode is unexpected but not "off" → treat as live (fail open)
-    TEST_ASSERT_TRUE(computeIsLive(""));
+void test_is_live_empty_string_is_false(void) {
+    TEST_ASSERT_FALSE(computeIsLive(""));
 }
 
 void test_is_live_null_is_false(void) {
@@ -109,8 +110,8 @@ void test_is_live_null_is_false(void) {
 }
 
 void test_is_live_case_sensitive(void) {
-    // "Off" (capitalised) is not "off" → treated as live
-    TEST_ASSERT_TRUE(computeIsLive("Off"));
+    // "Live" (capitalised) is not "live" → not treated as live
+    TEST_ASSERT_FALSE(computeIsLive("Live"));
 }
 
 // ---------------------------------------------------------------------------
@@ -134,9 +135,9 @@ int main(void) {
     RUN_TEST(test_is_live_mode_off_is_false);
     RUN_TEST(test_is_live_mode_standby_is_false);
     RUN_TEST(test_is_live_mode_live_is_true);
-    RUN_TEST(test_is_live_mode_on_is_true);
-    RUN_TEST(test_is_live_mode_active_is_true);
-    RUN_TEST(test_is_live_empty_string_is_true);
+    RUN_TEST(test_is_live_mode_on_is_false);
+    RUN_TEST(test_is_live_mode_active_is_false);
+    RUN_TEST(test_is_live_empty_string_is_false);
     RUN_TEST(test_is_live_null_is_false);
     RUN_TEST(test_is_live_case_sensitive);
 
