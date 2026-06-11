@@ -23,9 +23,8 @@ static void updateState(const WisData& w) {
     ledsSetWisPct(w.wis_pct);
 
     if (w.is_live && ledState == STATE_IDLE) {
-        // Just went live: trigger alert animation + audio
+        // Just went live: trigger alert animation (no audio on air)
         ledsSetState(STATE_ALERT);
-        audioPlayAlert();
     } else if (!w.is_live && (ledState == STATE_LIVE || ledState == STATE_ALERT)) {
         // Stream ended: return to idle
         audioStop();
@@ -81,6 +80,7 @@ static String logoOverrideLabel() {
 static void handleRoot() {
     String live_class = wisData.is_live ? "live" : "offline";
     String live_text  = wisData.is_live ? "&#x1F7E2; LIVE" : "&#x26AB; Offline";
+    if (wisData.live_via_fallback) live_text += " <small>(mode fallback)</small>";
 
     String html =
         "<!DOCTYPE html><html><head>"
@@ -163,6 +163,7 @@ static void handleStatus() {
     json += "\"wis_pct\":"    + String(wisData.wis_pct) + ",";
     json += "\"score_30m\":"  + String(wisData.score_30m, 2) + ",";
     json += "\"is_live\":"    + String(wisData.is_live ? "true" : "false") + ",";
+    json += "\"live_via_fallback\":" + String(wisData.live_via_fallback ? "true" : "false") + ",";
     json += "\"mode\":\""     + wisData.mode + "\",";
     json += "\"state\":\""    + String(stateLabel()) + "\",";
     json += "\"bar_override\":"  + String(ledsHasBarOverride() ? "true" : "false") + ",";

@@ -10,7 +10,7 @@ A desktop IoT device that monitors [Ryan Hall Y'all's](https://ryanhallyall.com)
 - **Progress bar** (10 LEDs) shows how close the WIS score is to today's stream threshold
   - Blue → Teal → Magenta gradient as score climbs
   - Full strobe when score hits 100% of threshold
-- **Goes live alert** — when Ryan's stream mode flips from `off`, the ON AIR logo pulses, the bar runs a climb animation bottom-to-top, and an MP3 audio clip plays
+- **Goes live alert** — when Ryan actually goes on air (`streams.current_live` in the channel feed; falls back to stream mode if that endpoint is down), the ON AIR logo pulses, the bar runs a climb animation bottom-to-top, and an MP3 audio clip plays
 - **Web dashboard** at the device's local IP — shows live WIS data and lets you test the LEDs manually
 - **WiFi setup via captive portal** — no credentials hardcoded, configure from your phone on first boot
 
@@ -199,6 +199,7 @@ Once on your network, the device hosts a dashboard at its local IP address (prin
   "wis_pct": 9,
   "score_30m": 13.59,
   "is_live": false,
+  "live_via_fallback": false,
   "mode": "off",
   "state": "IDLE"
 }

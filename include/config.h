@@ -19,6 +19,10 @@
 // WIS API
 // =============================================================================
 #define WIS_API_URL             "https://ryanhallyall.com/rhy/wis.json"
+// Channel data — `streams.current_live` is the authoritative on-air signal.
+// The site polls this every 30s and shows "LIVE NOW" only when it's set;
+// wis.json's `mode` is just the planned stream posture for the day.
+#define CHANNEL_API_URL         "https://ryanhallyall.com/rhy/ryan_hall_yall.json"
 #define WIS_POLL_INTERVAL_MS    (300 * 1000)    // how often to poll, in milliseconds
 #define WIS_THRESHOLD_FLOOR     10.0f           // if threshold < this, bar stays at minimum
                                                 // (avoids false "maxed out" on slow weather days)

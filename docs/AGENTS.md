@@ -126,33 +126,36 @@ const float WIS_THRESHOLD_FLOOR = 10.0f;
 
 ## 5. WIS API Polling (`include/wis.h` / `src/wis.cpp`)
 
-### Endpoint
+### Endpoints
 
 ```
-GET https://ryanhallyall.com/rhy/wis.json
+GET https://ryanhallyall.com/rhy/wis.json              (scores, threshold, mode)
+GET https://ryanhallyall.com/rhy/ryan_hall_yall.json   (channel data — authoritative live status)
 (no authentication required)
 ```
 
 ### Response Fields Used
 
-| JSON Path | Type | Meaning |
-|-----------|------|---------|
-| `wis.weather_intensity_score` | float | Current WIS score |
-| `wis.weather_intensity_score_30m_from_now` | float | 30-minute forecast score |
-| `wis.todays_stream_info.weather_intensity_score_threshold` | float | Score at which Ryan streams today |
-| `wis.todays_stream_info.mode` | string | Stream state — `"off"` and `"standby"` = not live; any other value = live |
+| JSON Path | Source | Type | Meaning |
+|-----------|--------|------|---------|
+| `wis.weather_intensity_score` | wis.json | float | Current WIS score |
+| `wis.weather_intensity_score_30m_from_now` | wis.json | float | 30-minute forecast score |
+| `wis.todays_stream_info.weather_intensity_score_threshold` | wis.json | float | Score at which Ryan streams today |
+| `wis.todays_stream_info.mode` | wis.json | string | Planned stream posture for the day — `"live"` = active coverage expected, `"standby"` = readiness, `"off"` = none. **Not an on-air indicator.** |
+| `streams.current_live` | ryan_hall_yall.json | object/null | Currently-live stream; `null` when not on air |
 
 ### Returned Struct
 
 ```cpp
 struct WisData {
-    float   current_score;   // wis.weather_intensity_score
-    float   score_30m;       // wis.weather_intensity_score_30m_from_now
-    float   threshold;       // wis.todays_stream_info.weather_intensity_score_threshold
-    String  mode;            // wis.todays_stream_info.mode
-    int     wis_pct;         // computed: see below — range 1–100
-    bool    is_live;         // computed: mode not "off"/"standby"
-    bool    valid;           // false if HTTP or parse error
+    float   current_score;     // wis.weather_intensity_score
+    float   score_30m;         // wis.weather_intensity_score_30m_from_now
+    float   threshold;         // wis.todays_stream_info.weather_intensity_score_threshold
+    String  mode;              // wis.todays_stream_info.mode
+    int     wis_pct;           // computed: see below — range 1–100
+    bool    is_live;           // primary: streams.current_live; fallback: mode == "live"
+    bool    live_via_fallback; // true when channel fetch failed and mode fallback was used
+    bool    valid;             // false if HTTP or parse error
 };
 ```
 
@@ -177,11 +180,19 @@ Examples at today's threshold of 147.16:
 
 ### Live Detection
 
+The website's "LIVE NOW" badge does **not** come from `wis.json` — `mode` is only the day's planned stream posture (the site renders `mode == "live"` as "GOING LIVE SOON"). The actual on-air signal is `streams.current_live` in `ryan_hall_yall.json`, mirroring the site's logic:
+
 ```cpp
-wis.is_live = (wis.mode != "off" && wis.mode != "standby");
+// Primary — channel endpoint (computeChannelLive in wis_calc.h):
+//   current_live == null            → not live
+//   current_live.is_live is bool    → use it
+//   otherwise                       → live if url or title is non-empty
+//
+// Fallback — only when the channel fetch/parse fails (computeIsLive):
+wis.is_live = (wis.mode == "live");
 ```
 
-Observed non-live values: `"off"` (no stream today) and `"standby"` (stream scheduled today but not yet started — observed 2026-06-06). Any other mode value (e.g., `"live"`, `"active"`) is treated as live, so an unrecognised live-mode string still triggers the alert. Log the raw `mode` string to Serial on every poll so unknown values are visible during testing.
+`live_via_fallback` records which path produced `is_live` (shown on the dashboard and `/status`). Observed mode values: `"off"` (no stream expected), `"standby"` (readiness — observed 2026-06-06), `"live"` (coverage expected — observed 2026-06-11 while the site showed "GOING LIVE SOON" and `current_live` was null). Log the raw `mode` string to Serial on every poll so unknown values are visible during testing.
 
 ### HTTP Parsing Notes
 

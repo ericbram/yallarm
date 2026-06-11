@@ -13,11 +13,23 @@ inline int computeWisPct(float score, float threshold, float threshold_floor) {
     return (int)raw;
 }
 
-// Returns true when the stream is considered live.
-// The live value is "live" — observed 2026-06-10 while the stream was
-// actually on air. Anything else ("off", "standby", unknown) is not live,
-// so a new unrecognised mode string no longer false-triggers the alert.
+// FALLBACK live detection from wis.json's todays_stream_info.mode.
+// `mode` is the *planned* stream posture for the day ("live" = active coverage
+// expected today), not an on-air indicator — the site renders mode=="live" as
+// "GOING LIVE SOON". Used only when the channel endpoint is unreachable.
 inline bool computeIsLive(const char* mode) {
     if (mode == nullptr) return false;
     return strcmp(mode, "live") == 0;
+}
+
+// PRIMARY live detection from ryan_hall_yall.json's streams.current_live.
+// Mirrors the site's own logic: not live when current_live is null; when
+// present, trust its is_live boolean if set, otherwise treat a non-empty
+// url or title as live.
+inline bool computeChannelLive(bool current_live_present,
+                               bool has_is_live_field, bool is_live_value,
+                               bool has_url_or_title) {
+    if (!current_live_present) return false;
+    if (has_is_live_field) return is_live_value;
+    return has_url_or_title;
 }

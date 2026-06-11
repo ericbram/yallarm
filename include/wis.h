@@ -5,15 +5,17 @@ struct WisData {
     float   current_score;     // wis.weather_intensity_score
     float   score_30m;         // wis.weather_intensity_score_30m_from_now
     float   threshold;         // wis.todays_stream_info.weather_intensity_score_threshold
-    String  mode;              // wis.todays_stream_info.mode ("live" = on air)
+    String  mode;              // wis.todays_stream_info.mode (planned posture: "live" = stream expected today)
     int     wis_pct;           // computed: (current_score / threshold) * 100, clamped 1–100
-    bool    is_live;           // computed: mode == "live"
+    bool    is_live;           // primary: streams.current_live in ryan_hall_yall.json; fallback: mode == "live"
+    bool    live_via_fallback; // true when is_live came from the mode fallback (channel fetch failed)
     bool    valid;             // false if the last poll failed (stale data retained)
 };
 
 // Global cached result — updated on every successful poll
 extern WisData wisData;
 
-// Perform one HTTP poll. Returns updated data; also updates wisData global.
+// Perform one HTTP poll of both endpoints (wis.json + ryan_hall_yall.json).
+// Returns updated data; also updates wisData global.
 // On failure, returns previous wisData with valid=false.
 WisData pollWIS();

@@ -74,7 +74,9 @@ void test_wis_pct_zero_threshold_returns_1(void) {
 }
 
 // ---------------------------------------------------------------------------
-// computeIsLive — live detection from mode string
+// computeIsLive — FALLBACK live detection from mode string
+// (mode is the planned stream posture for the day, not an on-air signal;
+// used only when the channel endpoint is unreachable)
 // ---------------------------------------------------------------------------
 
 void test_is_live_mode_off_is_false(void) {
@@ -115,6 +117,37 @@ void test_is_live_case_sensitive(void) {
 }
 
 // ---------------------------------------------------------------------------
+// computeChannelLive — PRIMARY live detection from streams.current_live
+// (mirrors the website's badge logic: current_live ? (is_live ?? url||title) : false)
+// ---------------------------------------------------------------------------
+
+void test_channel_live_null_current_live_is_false(void) {
+    // streams.current_live: null → not live (observed while badge said
+    // "GOING LIVE SOON" with mode "live", 2026-06-11)
+    TEST_ASSERT_FALSE(computeChannelLive(false, false, false, false));
+}
+
+void test_channel_live_is_live_true(void) {
+    // current_live present with is_live: true → live
+    TEST_ASSERT_TRUE(computeChannelLive(true, true, true, false));
+}
+
+void test_channel_live_is_live_false(void) {
+    // current_live present but is_live: false → not live, even with a url/title
+    TEST_ASSERT_FALSE(computeChannelLive(true, true, false, true));
+}
+
+void test_channel_live_no_is_live_field_with_url_or_title(void) {
+    // is_live missing → presence of url/title means live (site fallback)
+    TEST_ASSERT_TRUE(computeChannelLive(true, false, false, true));
+}
+
+void test_channel_live_no_is_live_field_no_url_or_title(void) {
+    // current_live present but empty → not live
+    TEST_ASSERT_FALSE(computeChannelLive(true, false, false, false));
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -140,6 +173,11 @@ int main(void) {
     RUN_TEST(test_is_live_empty_string_is_false);
     RUN_TEST(test_is_live_null_is_false);
     RUN_TEST(test_is_live_case_sensitive);
+    RUN_TEST(test_channel_live_null_current_live_is_false);
+    RUN_TEST(test_channel_live_is_live_true);
+    RUN_TEST(test_channel_live_is_live_false);
+    RUN_TEST(test_channel_live_no_is_live_field_with_url_or_title);
+    RUN_TEST(test_channel_live_no_is_live_field_no_url_or_title);
 
     return UNITY_END();
 }
