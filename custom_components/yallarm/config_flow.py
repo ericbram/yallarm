@@ -51,9 +51,6 @@ class YallarmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class YallarmOptionsFlow(config_entries.OptionsFlow):
     """Let the host be changed later without removing the integration."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        self.config_entry = config_entry
-
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
