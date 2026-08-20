@@ -2,6 +2,7 @@
 #include <LittleFS.h>
 #include <WiFiManager.h>
 #include <WebServer.h>
+#include <esp_task_wdt.h>
 
 #include "config.h"
 #include "wis.h"
@@ -283,9 +284,16 @@ void setup() {
     WisData initial = pollWIS();
     updateState(initial);
     lastWisPollMs = millis();
+
+    // Reboot automatically if loop() ever stalls (e.g. a hung TLS read in
+    // pollWIS) instead of needing a manual power cycle. 30s gives headroom
+    // over the two 10s HTTPClient timeouts pollWIS can hit back-to-back.
+    esp_task_wdt_init(30, true);
+    esp_task_wdt_add(NULL);
 }
 
 void loop() {
+    esp_task_wdt_reset();
     server.handleClient();
     audioLoop();
     handleDismissButton();
