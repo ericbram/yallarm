@@ -22,7 +22,7 @@ sensor:
     # rest_command below reads the IP from input_text.yall_arm_host;
     # this sensor's `resource` field is not reliably template-capable
     # across HA versions, so keep it a literal IP kept in sync with the helper.
-    resource: http://192.168.0.27/status
+    resource: http://192.168.0.117/status
     scan_interval: 30
     value_template: "{{ value_json.state }}"
     json_attributes:
