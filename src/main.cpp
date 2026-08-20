@@ -251,6 +251,9 @@ void setup() {
     ledsDiagLoop();   // never returns
 #endif
 
+    WiFi.mode(WIFI_STA);
+    WiFi.setHostname("yallarm");
+
 #if defined(WIFI_SSID) && defined(WIFI_PASSWORD)
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
     Serial.printf("[wifi] Trying compile-time credentials for \"%s\"\n", WIFI_SSID);
