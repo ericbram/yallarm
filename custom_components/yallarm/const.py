@@ -1,0 +1,2 @@
+DOMAIN = "yallarm"
+DEFAULT_SCAN_INTERVAL = 30
