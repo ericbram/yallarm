@@ -30,6 +30,17 @@ bool ledsLogoOverrideOn();
 void ledsClearAllOverrides();
 bool ledsAnyOverride();
 
+// Global brightness — independent of state/overrides, applied on top of both.
+// Opacity 100 = full brightness (LED_BRIGHTNESS), 0 = off.
+void ledsSetOpacity(int pct);    // clamp 0..100
+int  ledsGetOpacity();
+
+void ledsSetDarkMode(bool on);   // convenience: on -> opacity 25, off -> opacity 100
+bool ledsIsDarkMode();
+
+void ledsSetPower(bool on);      // convenience: off -> opacity 0, on -> opacity 100
+bool ledsIsPowerOn();
+
 #ifdef LED_DIAG
 // Hardware diagnostic: 6 color bands across all 120 LEDs, then a marching
 // single pixel with serial output. Never returns. Build with -DLED_DIAG.

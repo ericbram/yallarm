@@ -139,8 +139,24 @@ static void handleRoot() {
             "<hr style='margin-top:20px'>"
             "<form method='POST' action='/reset'>"
             "<button type='submit'>Reset to Live Data</button>"
+            "</form>";
+
+    html += "<hr><h2>Brightness</h2>"
+            "<form method='POST' action='/opacity'>"
+            "Opacity (0&ndash;100):&nbsp;"
+            "<output id='opval'>" + String(ledsGetOpacity()) + "</output>%"
+            "<input type='range' name='level' min='0' max='100' value='" + String(ledsGetOpacity()) + "'"
+            " oninput=\"document.getElementById('opval').value=this.value\">"
+            "<br><button type='submit'>Set Opacity</button>"
             "</form>"
-            "<hr><h2>Audio Test</h2>"
+            "<form method='POST' action='/dark-mode-" + String(ledsIsDarkMode() ? "off" : "on") + "' style='display:inline'>"
+            "<button type='submit'>" + String(ledsIsDarkMode() ? "Dark Mode: ON" : "Dark Mode: OFF") + "</button>"
+            "</form>&nbsp;"
+            "<form method='POST' action='/power-" + String(ledsIsPowerOn() ? "off" : "on") + "' style='display:inline'>"
+            "<button type='submit'>" + String(ledsIsPowerOn() ? "Power: ON" : "Power: OFF") + "</button>"
+            "</form>";
+
+    html += "<hr><h2>Audio Test</h2>"
             "<p style='color:#666;font-size:.9em'>Stream an MP3 from a URL to verify the audio chain "
             "(I2S amp + speaker). Leave the URL blank to play the on-device alert file from LittleFS.</p>"
             "<form method='POST' action='/test-audio'>"
@@ -170,7 +186,10 @@ static void handleStatus() {
     json += "\"bar_override\":"  + String(ledsHasBarOverride() ? "true" : "false") + ",";
     json += "\"bar_override_pct\":" + String(ledsBarOverridePct()) + ",";
     json += "\"logo_override\":" + String(ledsHasLogoOverride() ? "true" : "false") + ",";
-    json += "\"logo_override_on\":" + String(ledsLogoOverrideOn() ? "true" : "false");
+    json += "\"logo_override_on\":" + String(ledsLogoOverrideOn() ? "true" : "false") + ",";
+    json += "\"opacity\":" + String(ledsGetOpacity()) + ",";
+    json += "\"dark_mode\":" + String(ledsIsDarkMode() ? "true" : "false") + ",";
+    json += "\"power_on\":" + String(ledsIsPowerOn() ? "true" : "false");
     json += "}";
     server.send(200, "application/json", json);
 }
@@ -195,6 +214,44 @@ static void handleLogoOn() {
 static void handleLogoOff() {
     ledsSetLogoOverride(false);
     Serial.println("[web] Logo override: forced OFF");
+    server.sendHeader("Location", "/");
+    server.send(302, "text/plain", "");
+}
+
+static void handleOpacity() {
+    if (server.hasArg("level")) {
+        int pct = constrain(server.arg("level").toInt(), 0, 100);
+        ledsSetOpacity(pct);
+        Serial.printf("[web] Opacity set to %d%%\n", pct);
+    }
+    server.sendHeader("Location", "/");
+    server.send(302, "text/plain", "");
+}
+
+static void handleDarkModeOn() {
+    ledsSetDarkMode(true);
+    Serial.println("[web] Dark mode: on");
+    server.sendHeader("Location", "/");
+    server.send(302, "text/plain", "");
+}
+
+static void handleDarkModeOff() {
+    ledsSetDarkMode(false);
+    Serial.println("[web] Dark mode: off");
+    server.sendHeader("Location", "/");
+    server.send(302, "text/plain", "");
+}
+
+static void handlePowerOn() {
+    ledsSetPower(true);
+    Serial.println("[web] Power: on");
+    server.sendHeader("Location", "/");
+    server.send(302, "text/plain", "");
+}
+
+static void handlePowerOff() {
+    ledsSetPower(false);
+    Serial.println("[web] Power: off");
     server.sendHeader("Location", "/");
     server.send(302, "text/plain", "");
 }
@@ -275,6 +332,11 @@ void setup() {
     server.on("/override",        HTTP_POST, handleOverride);
     server.on("/logo-on",         HTTP_POST, handleLogoOn);
     server.on("/logo-off",        HTTP_POST, handleLogoOff);
+    server.on("/opacity",         HTTP_POST, handleOpacity);
+    server.on("/dark-mode-on",    HTTP_POST, handleDarkModeOn);
+    server.on("/dark-mode-off",   HTTP_POST, handleDarkModeOff);
+    server.on("/power-on",        HTTP_POST, handlePowerOn);
+    server.on("/power-off",       HTTP_POST, handlePowerOff);
     server.on("/reset",           HTTP_POST, handleReset);
     server.on("/test-audio",      HTTP_POST, handleTestAudio);
     server.on("/test-audio-stop", HTTP_POST, handleTestAudioStop);

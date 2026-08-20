@@ -40,3 +40,11 @@ inline RgbColor colorForPct(int wis_pct) {
 inline bool computeStrobe(int wis_pct) {
     return wis_pct >= 100;
 }
+
+// Scales a base FastLED brightness (0-255) by an opacity percentage.
+// opacity_pct is clamped to 0-100: 100 = base unchanged, 0 = fully off.
+inline uint8_t computeBrightness(int base, int opacity_pct) {
+    if (opacity_pct < 0)   opacity_pct = 0;
+    if (opacity_pct > 100) opacity_pct = 100;
+    return (uint8_t)((base * opacity_pct) / 100);
+}

@@ -145,6 +145,31 @@ void test_strobe_on_above_100(void) {
 }
 
 // ---------------------------------------------------------------------------
+// computeBrightness — base brightness scaled by opacity % (0-100)
+// ---------------------------------------------------------------------------
+
+void test_brightness_at_full_opacity(void) {
+    TEST_ASSERT_EQUAL_UINT8(128, computeBrightness(128, 100));
+}
+
+void test_brightness_at_zero_opacity(void) {
+    TEST_ASSERT_EQUAL_UINT8(0, computeBrightness(128, 0));
+}
+
+void test_brightness_at_dark_mode_opacity(void) {
+    // 25% of 128 = 32
+    TEST_ASSERT_EQUAL_UINT8(32, computeBrightness(128, 25));
+}
+
+void test_brightness_clamps_above_100(void) {
+    TEST_ASSERT_EQUAL_UINT8(128, computeBrightness(128, 150));
+}
+
+void test_brightness_clamps_below_zero(void) {
+    TEST_ASSERT_EQUAL_UINT8(0, computeBrightness(128, -10));
+}
+
+// ---------------------------------------------------------------------------
 // Combined — verify bar fill + color at key thresholds
 // ---------------------------------------------------------------------------
 
@@ -208,6 +233,12 @@ int main(void) {
     RUN_TEST(test_strobe_off_at_50);
     RUN_TEST(test_strobe_on_at_100);
     RUN_TEST(test_strobe_on_above_100);
+
+    RUN_TEST(test_brightness_at_full_opacity);
+    RUN_TEST(test_brightness_at_zero_opacity);
+    RUN_TEST(test_brightness_at_dark_mode_opacity);
+    RUN_TEST(test_brightness_clamps_above_100);
+    RUN_TEST(test_brightness_clamps_below_zero);
 
     RUN_TEST(test_9pct_is_2_leds_green);
     RUN_TEST(test_50pct_is_10_leds_yellow);

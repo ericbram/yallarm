@@ -20,9 +20,18 @@ static int  barOverridePct     = 50;
 static bool logoOverrideActive = false;
 static bool logoOverrideOn     = true;
 
+// Global brightness — see leds.h
+static int  opacityPct  = 100;
+static bool darkModeOn  = false;
+static bool ledsPowerOn = true;
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+static void applyOpacity() {
+    FastLED.setBrightness(computeBrightness(LED_BRIGHTNESS, opacityPct));
+}
 
 static void fillLogo(CRGB color) {
     for (int i = 0; i < LED_LOGO_COUNT; i++) {
@@ -83,7 +92,7 @@ static void tickClimb() {
 void ledsInit() {
     FastLED.addLeds<WS2812B, LED_LOGO_PIN, GRB>(logoLeds, LED_LOGO_COUNT);
     FastLED.addLeds<WS2812B, LED_BAR_PIN,  GRB>(barLeds,  LED_BAR_COUNT);
-    FastLED.setBrightness(LED_BRIGHTNESS);
+    applyOpacity();
     FastLED.clear(true);
 }
 
@@ -147,6 +156,28 @@ void ledsClearAllOverrides() {
     logoOverrideActive = false;
 }
 bool ledsAnyOverride() { return barOverrideActive || logoOverrideActive; }
+
+// ---------------------------------------------------------------------------
+// Global brightness
+// ---------------------------------------------------------------------------
+
+void ledsSetOpacity(int pct) {
+    opacityPct = constrain(pct, 0, 100);
+    applyOpacity();
+}
+int ledsGetOpacity() { return opacityPct; }
+
+void ledsSetDarkMode(bool on) {
+    darkModeOn = on;
+    ledsSetOpacity(on ? 25 : 100);
+}
+bool ledsIsDarkMode() { return darkModeOn; }
+
+void ledsSetPower(bool on) {
+    ledsPowerOn = on;
+    ledsSetOpacity(on ? 100 : 0);
+}
+bool ledsIsPowerOn() { return ledsPowerOn; }
 
 #ifdef LED_DIAG
 void ledsDiagLoop() {
