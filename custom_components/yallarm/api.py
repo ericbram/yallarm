@@ -5,8 +5,10 @@ import asyncio
 
 import aiohttp
 
+from homeassistant.exceptions import HomeAssistantError
 
-class YallarmApiError(Exception):
+
+class YallarmApiError(HomeAssistantError):
     """Raised when the yallarm device cannot be reached or returns an error."""
 
 

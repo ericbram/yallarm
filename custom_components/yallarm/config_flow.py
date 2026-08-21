@@ -45,7 +45,7 @@ class YallarmConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     def async_get_options_flow(
         config_entry: config_entries.ConfigEntry,
     ) -> YallarmOptionsFlow:
-        return YallarmOptionsFlow(config_entry)
+        return YallarmOptionsFlow()
 
 
 class YallarmOptionsFlow(config_entries.OptionsFlow):
